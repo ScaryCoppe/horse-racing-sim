@@ -697,7 +697,10 @@
                     setRaceProgress([...currentProgress]);
                     setRaceTime(time);
 
-                    if (Math.floor(time * 10) % 200 === 0 && phase === 'racing') { 
+                    // --- Commentary Logic (Fixed) ---
+                    // Removed 'phase === racing' check inside the loop because the closure captures the old phase value.
+                    // Instead, rely on the loop being active only during the race.
+                    if (Math.floor(time * 10) % 50 === 0) { // Check every ~0.8 seconds
                         const leader = sorted[0];
                         const leaderHorse = horses.find(h => h.id === leader.id);
                         const pct = leader.dist / TOTAL_DISTANCE;
@@ -705,27 +708,34 @@
                         const badStartHorse = currentProgress.find(p => p.status === 'late_start');
                         const kakariHorse = currentProgress.find(p => p.status === 'kakari');
 
-                        if (pct < 0.1) {
+                        let newCommentary = "";
+
+                        if (pct < 0.15) {
                             if (badStartHorse) {
                                 const h = horses.find(x => x.id === badStartHorse.id);
-                                setCommentary(`おっと！${h.name}、出遅れてしまった！`);
+                                newCommentary = `おっと！${h.name}、出遅れてしまった！`;
                             } else {
-                                setCommentary(`各馬、きれいなスタートを切りました。`);
+                                newCommentary = `各馬、きれいなスタートを切りました。`;
                             }
-                        } else if (pct < 0.5) {
-                            if (kakariHorse) {
+                        } else if (pct < 0.4) {
+                             if (kakariHorse) {
                                 const h = horses.find(x => x.id === kakariHorse.id);
-                                setCommentary(`${h.name}、少し掛かっているか？抑えきれない様子！`);
+                                newCommentary = `${h.name}、少し掛かっているか？抑えきれない様子！`;
                             } else {
-                                setCommentary(`${leaderHorse.name}がレースを引っ張る！`);
+                                newCommentary = `${leaderHorse.name}がレースを引っ張る！`;
                             }
+                        } else if (pct < 0.6) {
+                            newCommentary = `レースは中盤、${leaderHorse.name}が先頭をキープ。`;
                         } else if (pct < 0.85) {
-                            setCommentary(`4コーナーを回る！直線勝負だ！`);
+                             newCommentary = `4コーナーを回る！直線勝負だ！`;
                         } else if (pct < 0.95) {
-                            setCommentary(`${leaderHorse.name}が抜け出した！`);
+                             newCommentary = `${leaderHorse.name}が抜け出した！`;
                         } else {
-                            if (!finalResult) setCommentary(`ゴールまであと少し！`);
+                             if (!finalResult) newCommentary = `ゴールまであと少し！`;
                         }
+                        
+                        // Only update if changed to avoid flicker, but here we just set it
+                        setCommentary(newCommentary);
                     }
 
                     if (nextRank > horses.length) {
