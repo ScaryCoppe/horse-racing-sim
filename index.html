@@ -82,6 +82,7 @@
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
         const Ticket = (p) => <IconBase {...p}><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></IconBase>;
         const Info = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
+        const Sparkles = (p) => <IconBase {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
 
         // --- Constants & Data ---
         const RACE_TOTAL_DISTANCE = 2142; 
@@ -127,6 +128,12 @@
             TRIFECTA: { id: 'TRIFECTA', name: '3連単', count: 3, desc: '1着、2着、3着になる馬を、着順通りに当てます' },
         };
 
+        const TIPSTER_COURSES = {
+            SOLID: { id: 'SOLID', name: '堅実コース', desc: '的中率重視！コツコツ稼ぎたいあなたに。', type: 'PLACE' },
+            BALANCE: { id: 'BALANCE', name: 'バランスコース', desc: '回収率重視。馬連でしっかり利益を！', type: 'QUINELLA' },
+            DREAM: { id: 'DREAM', name: '一攫千金コース', desc: '夢の万馬券！穴馬を絡めた3連単勝負！', type: 'TRIFECTA' },
+        };
+
         const generateHorseName = () => {
             const pre = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)];
             const suf = HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)];
@@ -162,7 +169,7 @@
 
             let odds = (1 / jointProb) * 0.75; 
             if (type !== BET_TYPES.WIN.id && odds < 1.1) odds = 1.1;
-            if (type === BET_TYPES.PLACE.id && odds < 1.0) odds = 1.0; // Place can be 1.0
+            if (type === BET_TYPES.PLACE.id && odds < 1.0) odds = 1.0; 
             
             return Math.min(99999.9, Math.max(1.0, parseFloat(odds.toFixed(1))));
         };
@@ -195,6 +202,58 @@
                 return ids[0] === r1 && ids[1] === r2 && ids[2] === r3;
             }
             return false;
+        };
+
+        // --- Extracted Tipster Modal Component ---
+        const TipsterModal = ({ isOpen, onClose, onPurchase, wallet, budget, setBudget, course, setCourse }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-purple-600 text-white p-4 flex justify-between items-center">
+                            <h3 className="text-lg font-bold flex items-center gap-2"><Sparkles /> 予想屋の部屋</h3>
+                            <button onClick={onClose} className="text-2xl hover:text-gray-300">&times;</button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-gray-600 mb-4 text-sm font-bold">
+                                「わしは予想屋さんじゃ。調子のいい馬見えておるぞ。」
+                            </p>
+                            
+                            <div className="mb-4">
+                                <label className="block text-sm font-bold text-gray-700 mb-1">予算 (所持金: {wallet.toLocaleString()}円)</label>
+                                <input 
+                                    type="number" 
+                                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 text-gray-900 bg-white placeholder-gray-500"
+                                    style={{ color: 'black', backgroundColor: 'white' }}
+                                    value={budget}
+                                    onChange={(e) => setBudget(e.target.value)}
+                                    step="100"
+                                />
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                {Object.values(TIPSTER_COURSES).map(c => (
+                                    <div 
+                                        key={c.id}
+                                        onClick={() => setCourse(c.id)}
+                                        className={`p-3 border rounded-lg cursor-pointer transition-all ${course === c.id ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-200 hover:bg-gray-50'}`}
+                                    >
+                                        <div className="font-bold text-purple-700">{c.name}</div>
+                                        <div className="text-xs text-gray-500">{c.desc}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button 
+                                onClick={onPurchase}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95"
+                            >
+                                予想を購入する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
         };
 
         // --- Main Component ---
@@ -234,6 +293,11 @@
             
             // Tooltip State
             const [hoveredHorse, setHoveredHorse] = useState(null);
+
+            // Tipster State
+            const [showTipster, setShowTipster] = useState(false);
+            const [tipsterBudget, setTipsterBudget] = useState(1000);
+            const [tipsterCourse, setTipsterCourse] = useState('SOLID');
 
             const animationRef = useRef(null);
 
@@ -387,6 +451,67 @@
 
             useEffect(() => setupRace(), []);
 
+            // --- Tipster Functionality (Added) ---
+
+            const purchaseTipsterPrediction = () => {
+                if (tipsterBudget > wallet && wallet >= 100) {
+                    alert("所持金が不足していますが、借金をして購入しますか？");
+                } else if (tipsterBudget <= 0) {
+                    alert("予算を入力してください。");
+                    return;
+                }
+
+                // Calculate Tipster Scores
+                // Formula: (strength * 0.4) + (condition * 50) + (jockeyWeight * 2)
+                const scoredHorses = horses.map(h => ({
+                    ...h,
+                    tipsterScore: (h.strength * 0.4) + (h.condition * 50) + (h.jockeyWeight * 2)
+                })).sort((a, b) => b.tipsterScore - a.tipsterScore);
+
+                let betTypeToUse = '';
+                let selection = [];
+
+                if (tipsterCourse === 'SOLID') {
+                    // Solid: Place (Best horse)
+                    betTypeToUse = 'PLACE';
+                    selection = [scoredHorses[0]];
+                } else if (tipsterCourse === 'BALANCE') {
+                    // Balance: Quinella (Top 2)
+                    betTypeToUse = 'QUINELLA';
+                    selection = [scoredHorses[0], scoredHorses[1]];
+                } else if (tipsterCourse === 'DREAM') {
+                    // Dream: Trifecta (Top 2 + Dark Horse)
+                    const darkHorses = horses.filter(h => h.odds >= 10.0).sort((a, b) => b.condition - a.condition);
+                    const darkHorse = darkHorses.length > 0 ? darkHorses[0] : scoredHorses[2];
+                    
+                    // Avoid duplicates
+                    const picks = [scoredHorses[0], scoredHorses[1]];
+                    if (picks.some(p => p.id === darkHorse.id)) {
+                         selection = [scoredHorses[0], scoredHorses[1], scoredHorses[2]];
+                    } else {
+                         selection = [scoredHorses[0], scoredHorses[1], darkHorse];
+                    }
+                    betTypeToUse = 'TRIFECTA';
+                }
+
+                // Calculate Odds
+                const odds = calculateComboOdds(betTypeToUse, selection.map(s => s.id), horses);
+
+                const newBet = {
+                    id: Date.now(),
+                    type: betTypeToUse,
+                    typeName: BET_TYPES[betTypeToUse].name,
+                    selection: selection,
+                    amount: parseInt(tipsterBudget),
+                    odds: odds,
+                    isTipster: true // Mark as tipster bet
+                };
+
+                setBetSlip(prev => [...prev, newBet]);
+                setShowTipster(false);
+                alert("予想を購入しました！投票リストを確認してください。");
+            };
+
             // --- Betting Handlers ---
 
             const addToSlip = () => {
@@ -412,7 +537,8 @@
                     typeName: BET_TYPES[betType].name,
                     selection: selection.map(idx => horses[idx]), 
                     amount: parseInt(betAmount),
-                    odds: currentOdds
+                    odds: currentOdds,
+                    isTipster: false
                 };
 
                 setBetSlip([...betSlip, newBet]);
@@ -730,7 +856,7 @@
                                         <div className={`text-2xl filter drop-shadow-md ${phase === 'racing' ? 'horse-gallop' : ''}`}>🐴</div>
                                         <div 
                                             className="text-[8px] text-white px-1 rounded whitespace-nowrap -mt-1 font-bold"
-                                            style={{ backgroundColor: ['white', 'black', 'red', 'blue', 'yellow', 'green', 'orange', 'pink'][horse.id % 8], color: horse.id===0||horse.id===4||horse.id===7?'black':'white' }}
+                                            style={{ backgroundColor: ['white', 'black', '#e53935', '#1e88e5', '#fdd835', '#43a047', '#fb8c00', '#f48fb1'][horse.id % 8], color: horse.id % 8 ===0 || horse.id % 8 === 4 || horse.id % 8 === 7 ?'black':'white', border: horse.id===0?'1px solid #ccc':'none' }}
                                         >
                                             {horse.number}.{horse.name}
                                         </div>
@@ -767,13 +893,13 @@
                 </div>
             );
 
-            // *** BETTING TICKET (New Read-Only Prop) ***
+            // *** BETTING TICKET (Updated for Tipster) ***
             const BettingTicket = ({ bet, onDelete, isResult, hit, readOnly }) => (
-                <div className={`bg-white border-2 ${isResult ? (hit ? 'border-red-500' : 'border-gray-400') : 'border-green-700'} rounded shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}>
-                    <div className={`${isResult ? (hit ? 'bg-red-500' : 'bg-gray-500') : 'bg-green-700'} text-white text-xs px-2 py-1 flex justify-between items-center`}>
+                <div className={`bg-white border-2 ${isResult ? (hit ? 'border-red-500' : 'border-gray-400') : (bet.isTipster ? 'border-purple-600' : 'border-green-700')} rounded shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}>
+                    <div className={`${isResult ? (hit ? 'bg-red-500' : 'bg-gray-500') : (bet.isTipster ? 'bg-purple-600' : 'bg-green-700')} text-white text-xs px-2 py-1 flex justify-between items-center`}>
                         <span className="font-bold flex items-center gap-1">
-                            <Ticket size={12} />
-                            阪神競馬場
+                            {bet.isTipster ? <Sparkles size={12} /> : <Ticket size={12} />}
+                            {bet.isTipster ? '予想屋本舗' : '阪神競馬場'}
                         </span>
                         <span>{new Date(bet.id).toLocaleTimeString()} 発券</span>
                     </div>
@@ -823,8 +949,8 @@
                             </div>
                         )}
                         {!isResult && (
-                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 border-red-500/20 text-red-500/20 font-black text-3xl rotate-12 px-2 select-none pointer-events-none">
-                                VOTE
+                             <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 ${bet.isTipster ? 'border-purple-500/20 text-purple-500/20' : 'border-red-500/20 text-red-500/20'} font-black text-3xl rotate-12 px-2 select-none pointer-events-none`}>
+                                {bet.isTipster ? 'PRO' : 'VOTE'}
                             </div>
                         )}
                     </div>
@@ -1005,7 +1131,6 @@
                                 </div>
                                 
                                 <div className="p-4 bg-blue-50">
-                                    {/* Description Added Here */}
                                     <div className="bg-blue-100 text-blue-800 text-sm p-2 rounded mb-4 border border-blue-200 flex items-center gap-2">
                                         <Info size={16} />
                                         <span>{BET_TYPES[betType].desc}</span>
@@ -1073,6 +1198,20 @@
                                     </div>
                                 )}
                             </div>
+                        )}
+
+                        {/* Tipster Modal (Added) */}
+                        {phase === 'betting' && <TipsterModal isOpen={showTipster} onClose={() => setShowTipster(false)} onPurchase={purchaseTipsterPrediction} wallet={wallet} budget={tipsterBudget} setBudget={setTipsterBudget} course={tipsterCourse} setCourse={setTipsterCourse} />}
+
+                        {/* Tipster Floating Button (Added) */}
+                        {phase === 'betting' && (
+                            <button 
+                                onClick={() => setShowTipster(true)}
+                                className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-2xl border-4 border-white animate-bounce z-50 flex items-center justify-center"
+                                style={{ width: '64px', height: '64px' }}
+                            >
+                                <span className="text-3xl">🧙‍♂️</span>
+                            </button>
                         )}
 
                         {/* Fanfare View */}
