@@ -118,10 +118,13 @@
         ];
 
         const BET_TYPES = {
-            WIN: { id: 'WIN', name: '単勝', count: 1 },
-            WIDE: { id: 'WIDE', name: 'ワイド', count: 2 },
-            TRIO: { id: 'TRIO', name: '3連複', count: 3 },
-            TRIFECTA: { id: 'TRIFECTA', name: '3連単', count: 3 },
+            WIN: { id: 'WIN', name: '単勝', count: 1, desc: '1着になる馬を当てます' },
+            PLACE: { id: 'PLACE', name: '複勝', count: 1, desc: '3着以内に入る馬を当てます' },
+            QUINELLA: { id: 'QUINELLA', name: '馬連', count: 2, desc: '1着と2着になる馬の組み合わせを当てます（順不同）' },
+            WIDE: { id: 'WIDE', name: 'ワイド', count: 2, desc: '3着以内に入る馬のうち、2頭の組み合わせを当てます（順不同）' },
+            EXACTA: { id: 'EXACTA', name: '馬単', count: 2, desc: '1着と2着になる馬を、着順通りに当てます' },
+            TRIO: { id: 'TRIO', name: '3連複', count: 3, desc: '1着、2着、3着になる馬の組み合わせを当てます（順不同）' },
+            TRIFECTA: { id: 'TRIFECTA', name: '3連単', count: 3, desc: '1着、2着、3着になる馬を、着順通りに当てます' },
         };
 
         const generateHorseName = () => {
@@ -139,8 +142,18 @@
             
             if (type === BET_TYPES.WIN.id) {
                 jointProb = probs[0];
+            } else if (type === BET_TYPES.PLACE.id) {
+                // Place is roughly 3x Win probability
+                jointProb = probs[0] * 3.0;
+            } else if (type === BET_TYPES.QUINELLA.id) {
+                // Quinella (Top 2 any order)
+                jointProb = probs[0] * probs[1] * 2.5; 
             } else if (type === BET_TYPES.WIDE.id) {
+                // Wide (Top 3 any 2) - Easiest of combo bets
                 jointProb = probs[0] * probs[1] * 4.5; 
+            } else if (type === BET_TYPES.EXACTA.id) {
+                // Exacta (Top 2 exact order) - Harder than Quinella
+                jointProb = probs[0] * probs[1] * 1.2;
             } else if (type === BET_TYPES.TRIO.id) {
                 jointProb = probs[0] * probs[1] * probs[2] * 7.0; 
             } else if (type === BET_TYPES.TRIFECTA.id) {
@@ -149,11 +162,14 @@
 
             let odds = (1 / jointProb) * 0.75; 
             if (type !== BET_TYPES.WIN.id && odds < 1.1) odds = 1.1;
+            if (type === BET_TYPES.PLACE.id && odds < 1.0) odds = 1.0; // Place can be 1.0
+            
             return Math.min(99999.9, Math.max(1.0, parseFloat(odds.toFixed(1))));
         };
         
         const checkWin = (bet, finishOrder) => {
             if (!finishOrder || finishOrder.length < 3) return false;
+            
             const ids = bet.selection.map(h => h.id);
             const r1 = finishOrder[0].id;
             const r2 = finishOrder[1].id;
@@ -161,9 +177,16 @@
 
             if (bet.type === 'WIN') {
                 return ids[0] === r1;
+            } else if (bet.type === 'PLACE') {
+                return ids[0] === r1 || ids[0] === r2 || ids[0] === r3;
+            } else if (bet.type === 'QUINELLA') {
+                const top2 = [r1, r2];
+                return top2.includes(ids[0]) && top2.includes(ids[1]);
             } else if (bet.type === 'WIDE') {
                 const top3 = [r1, r2, r3];
                 return top3.includes(ids[0]) && top3.includes(ids[1]);
+            } else if (bet.type === 'EXACTA') {
+                return ids[0] === r1 && ids[1] === r2;
             } else if (bet.type === 'TRIO') {
                 const top3 = [r1, r2, r3].sort().join(',');
                 const sel = [...ids].sort().join(',');
@@ -210,7 +233,7 @@
                 let totalPopularityScore = 0;
 
                 const usedNames = new Set();
-                const usedJockeys = new Set(); // Check for duplicate jockeys
+                const usedJockeys = new Set(); 
                 let strengthPool = [];
                 
                 // 1. Generate Capability
@@ -246,7 +269,7 @@
                     while(usedNames.has(name) && attempts < 20) { name = generateHorseName(); attempts++; }
                     usedNames.add(name);
 
-                    // Jockey with Duplication Check
+                    // Jockey
                     let jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
                     attempts = 0;
                     while(usedJockeys.has(jockey.name) && attempts < 50) {
@@ -279,7 +302,7 @@
                         number: i + 1,
                         name: name,
                         jockey: jockey.name,
-                        jockeyWeight: jockey.weight, // Skill Level (0-10)
+                        jockeyWeight: jockey.weight, 
                         jockeyRank: jockey.rank,
                         strength: strength,
                         stamina: Math.random() * 0.4 + 0.8,
@@ -917,12 +940,12 @@
                         {/* Betting Interface */}
                         {phase === 'betting' && (
                             <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-                                <div className="flex bg-gray-100 border-b">
+                                <div className="flex bg-gray-100 border-b flex-wrap">
                                     {Object.values(BET_TYPES).map(type => (
                                         <button 
                                             key={type.id}
                                             onClick={() => { setBetType(type.id); setSelectedHorses([null, null, null]); }}
-                                            className={`flex-1 py-3 text-sm font-bold transition-colors ${betType === type.id ? 'bg-blue-600 text-white shadow-inner' : 'text-gray-600 hover:bg-gray-200'}`}
+                                            className={`flex-1 py-3 text-sm font-bold transition-colors min-w-[80px] ${betType === type.id ? 'bg-blue-600 text-white shadow-inner' : 'text-gray-600 hover:bg-gray-200'}`}
                                         >
                                             {type.name}
                                         </button>
@@ -930,10 +953,16 @@
                                 </div>
                                 
                                 <div className="p-4 bg-blue-50">
+                                    {/* Description Added Here */}
+                                    <div className="bg-blue-100 text-blue-800 text-sm p-2 rounded mb-4 border border-blue-200 flex items-center gap-2">
+                                        <Info size={16} />
+                                        <span>{BET_TYPES[betType].desc}</span>
+                                    </div>
+
                                     <div className="mb-4">
-                                        <HorseSelectionRow index={0} label={betType === 'WIDE' || betType === 'TRIO' ? "1頭目" : "1着予想"} />
+                                        <HorseSelectionRow index={0} label={betType === 'WIDE' || betType === 'TRIO' || betType === 'QUINELLA' || betType === 'PLACE' ? "1頭目" : "1着予想"} />
                                         {BET_TYPES[betType].count >= 2 && (
-                                            <HorseSelectionRow index={1} label={betType === 'WIDE' || betType === 'TRIO' ? "2頭目" : "2着予想"} />
+                                            <HorseSelectionRow index={1} label={betType === 'WIDE' || betType === 'TRIO' || betType === 'QUINELLA' ? "2頭目" : "2着予想"} />
                                         )}
                                         {BET_TYPES[betType].count >= 3 && (
                                             <HorseSelectionRow index={2} label={betType === 'TRIO' ? "3頭目" : "3着予想"} />
