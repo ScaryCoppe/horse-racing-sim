@@ -200,8 +200,20 @@
         // --- Main Component ---
 
         const App = () => {
-            const [wallet, setWallet] = useState(100000); 
-            const [raceCount, setRaceCount] = useState(1);
+            // Load initial state from localStorage or default
+            const [wallet, setWallet] = useState(() => {
+                const saved = localStorage.getItem('g1dream_wallet');
+                return saved !== null ? parseInt(saved) : 100000;
+            });
+            const [raceCount, setRaceCount] = useState(() => {
+                const saved = localStorage.getItem('g1dream_raceCount');
+                return saved !== null ? parseInt(saved) : 1;
+            });
+            const [resultLog, setResultLog] = useState(() => {
+                const saved = localStorage.getItem('g1dream_resultLog');
+                return saved !== null ? JSON.parse(saved) : [];
+            });
+
             const [phase, setPhase] = useState('betting'); 
             const [horses, setHorses] = useState([]);
             
@@ -217,13 +229,36 @@
             const [raceRanking, setRaceRanking] = useState([]); 
             const [finalResult, setFinalResult] = useState(null);
             const [commentary, setCommentary] = useState("パドック周回中...");
-            const [resultLog, setResultLog] = useState([]); 
+            
             const [showHistory, setShowHistory] = useState(false); 
             
             // Tooltip State
             const [hoveredHorse, setHoveredHorse] = useState(null);
 
             const animationRef = useRef(null);
+
+            // Save to localStorage whenever state changes
+            useEffect(() => {
+                localStorage.setItem('g1dream_wallet', wallet);
+                localStorage.setItem('g1dream_raceCount', raceCount);
+                localStorage.setItem('g1dream_resultLog', JSON.stringify(resultLog));
+            }, [wallet, raceCount, resultLog]);
+
+            // Reset Function
+            const resetGame = () => {
+                if (confirm("データを初期化して最初から遊びますか？\n（所持金、戦績がすべてリセットされます）")) {
+                    localStorage.removeItem('g1dream_wallet');
+                    localStorage.removeItem('g1dream_raceCount');
+                    localStorage.removeItem('g1dream_resultLog');
+                    window.location.reload();
+                }
+            };
+
+            // Unified Bet Type Change Handler
+            const handleBetTypeChange = (newType) => {
+                setBetType(newType);
+                setSelectedHorses([null, null, null]);
+            };
 
             // --- Game Logic ---
 
@@ -800,7 +835,7 @@
                 <div className="min-h-screen bg-green-900 pb-24">
                     {/* Header */}
                     <header className="bg-gray-900 text-white p-3 sticky top-0 z-20 shadow-lg border-b-4 border-yellow-600 flex justify-between items-center">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" onClick={resetGame} style={{ cursor: 'pointer' }}>
                             <Trophy className="text-yellow-400" size={24} />
                             <div>
                                 <h1 className="font-bold text-lg leading-tight">G1 ドリーム</h1>
@@ -940,11 +975,28 @@
                         {/* Betting Interface */}
                         {phase === 'betting' && (
                             <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-                                <div className="flex bg-gray-100 border-b flex-wrap">
+                                
+                                {/* Mobile View: Dropdown */}
+                                <div className="block md:hidden bg-gray-100 border-b p-2">
+                                     <select 
+                                        className="w-full p-3 bg-white border border-gray-300 rounded font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={betType}
+                                        onChange={(e) => handleBetTypeChange(e.target.value)}
+                                    >
+                                        {Object.values(BET_TYPES).map(type => (
+                                            <option key={type.id} value={type.id}>
+                                                {type.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Desktop View: Buttons */}
+                                <div className="hidden md:flex bg-gray-100 border-b flex-wrap">
                                     {Object.values(BET_TYPES).map(type => (
                                         <button 
                                             key={type.id}
-                                            onClick={() => { setBetType(type.id); setSelectedHorses([null, null, null]); }}
+                                            onClick={() => handleBetTypeChange(type.id)}
                                             className={`flex-1 py-3 text-sm font-bold transition-colors min-w-[80px] ${betType === type.id ? 'bg-blue-600 text-white shadow-inner' : 'text-gray-600 hover:bg-gray-200'}`}
                                         >
                                             {type.name}
