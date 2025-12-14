@@ -335,23 +335,24 @@
                 const usedJockeys = new Set(); 
                 let strengthPool = [];
                 
-                // 1. Generate Capability
+                // 1. Generate Capability (USING INDEX-B LOGIC: COMPETITIVE)
                 const racePattern = Math.random();
                 let patternName = "";
 
                 if (racePattern < 0.3) {
                     patternName = "1強";
                     strengthPool.push(95 + Math.random() * 10); 
-                    for(let k=0; k<7; k++) strengthPool.push(40 + Math.random() * 35); 
+                    // Competitive weak horses (Index B)
+                    for(let k=0; k<7; k++) strengthPool.push(65 + Math.random() * 25); 
                 } else if (racePattern < 0.6) {
                     patternName = "2強";
                     strengthPool.push(90 + Math.random() * 8);
                     strengthPool.push(90 + Math.random() * 8);
-                    for(let k=0; k<6; k++) strengthPool.push(40 + Math.random() * 35);
+                    for(let k=0; k<6; k++) strengthPool.push(65 + Math.random() * 25);
                 } else if (racePattern < 0.8) {
                     patternName = "3強";
                     for(let k=0; k<3; k++) strengthPool.push(85 + Math.random() * 10);
-                    for(let k=0; k<5; k++) strengthPool.push(40 + Math.random() * 35);
+                    for(let k=0; k<5; k++) strengthPool.push(65 + Math.random() * 25);
                 } else {
                     patternName = "混戦";
                     const baseStrength = 60 + Math.random() * 10;
@@ -451,7 +452,7 @@
 
             useEffect(() => setupRace(), []);
 
-            // --- Tipster Functionality (Added) ---
+            // --- Tipster Functionality (Index B) ---
 
             const purchaseTipsterPrediction = () => {
                 if (tipsterBudget > wallet && wallet >= 100) {
@@ -462,7 +463,6 @@
                 }
 
                 // Calculate Tipster Scores
-                // Formula: (strength * 0.4) + (condition * 50) + (jockeyWeight * 2)
                 const scoredHorses = horses.map(h => ({
                     ...h,
                     tipsterScore: (h.strength * 0.4) + (h.condition * 50) + (h.jockeyWeight * 2)
@@ -472,19 +472,15 @@
                 let selection = [];
 
                 if (tipsterCourse === 'SOLID') {
-                    // Solid: Place (Best horse)
                     betTypeToUse = 'PLACE';
                     selection = [scoredHorses[0]];
                 } else if (tipsterCourse === 'BALANCE') {
-                    // Balance: Quinella (Top 2)
                     betTypeToUse = 'QUINELLA';
                     selection = [scoredHorses[0], scoredHorses[1]];
                 } else if (tipsterCourse === 'DREAM') {
-                    // Dream: Trifecta (Top 2 + Dark Horse)
                     const darkHorses = horses.filter(h => h.odds >= 10.0).sort((a, b) => b.condition - a.condition);
                     const darkHorse = darkHorses.length > 0 ? darkHorses[0] : scoredHorses[2];
                     
-                    // Avoid duplicates
                     const picks = [scoredHorses[0], scoredHorses[1]];
                     if (picks.some(p => p.id === darkHorse.id)) {
                          selection = [scoredHorses[0], scoredHorses[1], scoredHorses[2]];
@@ -494,7 +490,6 @@
                     betTypeToUse = 'TRIFECTA';
                 }
 
-                // Calculate Odds
                 const odds = calculateComboOdds(betTypeToUse, selection.map(s => s.id), horses);
 
                 const newBet = {
@@ -504,7 +499,7 @@
                     selection: selection,
                     amount: parseInt(tipsterBudget),
                     odds: odds,
-                    isTipster: true // Mark as tipster bet
+                    isTipster: true 
                 };
 
                 setBetSlip(prev => [...prev, newBet]);
@@ -575,7 +570,7 @@
                 }, 2500);
             };
 
-            // --- Race Simulation ---
+            // --- Race Simulation (HYBRID: Index C) ---
 
             const runRace = () => {
                 let currentProgress = horses.map(h => ({ 
@@ -585,6 +580,7 @@
                     fatigue: 0,
                     rank: null,
                     status: 'normal', 
+                    // Base speed calculation
                     maxSpeed: (h.strength / 100) + 0.8 
                 }));
                 
@@ -595,7 +591,8 @@
 
                 currentProgress = currentProgress.map(p => {
                     const horse = horses.find(h => h.id === p.id);
-                    const lateStartChance = (10 - horse.jockeyWeight) * 0.01;
+                    // Slightly decreased late start chance for realism
+                    const lateStartChance = (10 - horse.jockeyWeight) * 0.008;
                     if (Math.random() < lateStartChance) {
                         p.status = 'late_start';
                     }
@@ -615,6 +612,9 @@
                         const progressPct = p.dist / TOTAL_DISTANCE;
 
                         let targetSpeed = p.maxSpeed;
+                        
+                        // [HYBRID] Use Index-A's lower volatility for stability
+                        // 0.3 means speed won't fluctuate wildly every frame
                         const randomFactor = (Math.random() - 0.5) * 0.3; 
 
                         let conditionMod = horse.condition * 0.3;
@@ -623,13 +623,17 @@
                         }
                         targetSpeed *= (1 + conditionMod);
 
+                        // Jockey skill reduces fatigue accumulation
                         const fatigueRate = 0.02 * (1.0 - (horse.jockeyWeight * 0.02));
 
+                        // Status Effects
                         if (p.status === 'late_start') {
                             targetSpeed *= 0.5; 
-                            if (progressPct > 0.05) p.status = 'normal'; 
+                            // Recovery based on jockey skill
+                            if (progressPct > 0.05 + (Math.random() * 0.05)) p.status = 'normal'; 
                         }
 
+                        // Kakari (Over-eager) Check
                         if (progressPct > 0.2 && progressPct < 0.7 && p.status === 'normal') {
                             const kakariChance = (10 - horse.jockeyWeight) * 0.0005; 
                             if (Math.random() < kakariChance) {
@@ -638,31 +642,44 @@
                         }
                         
                         if (p.status === 'kakari') {
-                            targetSpeed *= 1.15; 
-                            p.fatigue += (p.speed * fatigueRate * 3);
+                            targetSpeed *= 1.15; // Running too fast
+                            p.fatigue += (p.speed * fatigueRate * 3.5); // Severe fatigue penalty
                             if (Math.random() < 0.03) p.status = 'normal';
                         } else {
                             p.fatigue += (p.speed * fatigueRate);
                         }
 
-                        if (progressPct < 0.15) { 
+                        // Pace & Style Logic
+                        if (progressPct < 0.15) { // Start
                             if (horse.style.id === 0) targetSpeed *= 1.2; 
                             else if (horse.style.id === 3) targetSpeed *= 0.8; 
-                        } else if (progressPct < 0.6) { 
+                        } else if (progressPct < 0.6) { // Middle
                             if (horse.style.id === 0) targetSpeed *= 0.95; 
                             else if (horse.style.id === 3) targetSpeed *= 0.9; 
                             else targetSpeed *= 0.9; 
-                            if (Math.random() < 0.01) targetSpeed *= 1.2; 
-                        } else if (progressPct < 0.85) { 
+                            
+                            // Occasional "breather" or "spur"
+                            if (Math.random() < 0.005) targetSpeed *= 1.1; 
+                        } else if (progressPct < 0.85) { // Spurt Prep
                              if (horse.style.id === 1) targetSpeed *= 1.1; 
                              if (horse.style.id === 2) targetSpeed *= 1.2; 
-                        } else { 
+                        } else { // Final Straight
                              if (horse.style.id === 3) targetSpeed *= 1.5; 
                              else if (horse.style.id === 0) targetSpeed *= 0.8; 
                              else targetSpeed *= 1.0; 
                              
-                             if (p.fatigue > horse.strength * horse.stamina * (0.6 + Math.random())) {
-                                 targetSpeed *= 0.5; 
+                             // [REALISM] Stamina Limit Logic
+                             // Instead of random 0.5 speed, we apply a consistent penalty if fatigued
+                             const staminaLimit = horse.strength * horse.stamina * 0.9;
+                             
+                             if (p.fatigue > staminaLimit) {
+                                 // The horse is out of stamina.
+                                 // Calculate how much over the limit
+                                 const over = p.fatigue - staminaLimit;
+                                 // Decelerate based on how exhausted they are
+                                 const penalty = Math.min(0.4, over * 0.05);
+                                 targetSpeed *= (1.0 - penalty);
+                                 p.status = 'tired'; // Visual cue possibility
                              }
                         }
 
@@ -697,44 +714,45 @@
                     setRaceProgress([...currentProgress]);
                     setRaceTime(time);
 
-                    // --- Commentary Logic (Fixed) ---
-                    // Removed 'phase === racing' check inside the loop because the closure captures the old phase value.
-                    // Instead, rely on the loop being active only during the race.
-                    if (Math.floor(time * 10) % 50 === 0) { // Check every ~0.8 seconds
+                    if (Math.floor(time * 10) % 50 === 0) { 
                         const leader = sorted[0];
                         const leaderHorse = horses.find(h => h.id === leader.id);
                         const pct = leader.dist / TOTAL_DISTANCE;
                         
-                        const badStartHorse = currentProgress.find(p => p.status === 'late_start');
+                        const tiredHorse = currentProgress.find(p => p.status === 'tired');
                         const kakariHorse = currentProgress.find(p => p.status === 'kakari');
 
                         let newCommentary = "";
 
                         if (pct < 0.15) {
-                            if (badStartHorse) {
-                                const h = horses.find(x => x.id === badStartHorse.id);
-                                newCommentary = `おっと！${h.name}、出遅れてしまった！`;
+                            const badStart = currentProgress.find(p => p.status === 'late_start');
+                            if (badStart) {
+                                const h = horses.find(x => x.id === badStart.id);
+                                newCommentary = `おっと！${h.name}、出遅れました。`;
                             } else {
                                 newCommentary = `各馬、きれいなスタートを切りました。`;
                             }
                         } else if (pct < 0.4) {
                              if (kakariHorse) {
                                 const h = horses.find(x => x.id === kakariHorse.id);
-                                newCommentary = `${h.name}、少し掛かっているか？抑えきれない様子！`;
+                                newCommentary = `${h.name}、行きたがっています！騎手が必死に抑える！`;
                             } else {
                                 newCommentary = `${leaderHorse.name}がレースを引っ張る！`;
                             }
                         } else if (pct < 0.6) {
                             newCommentary = `レースは中盤、${leaderHorse.name}が先頭をキープ。`;
                         } else if (pct < 0.85) {
-                             newCommentary = `4コーナーを回る！直線勝負だ！`;
+                             newCommentary = `第4コーナー！後続が押し寄せてくる！`;
                         } else if (pct < 0.95) {
-                             newCommentary = `${leaderHorse.name}が抜け出した！`;
+                             if (tiredHorse && tiredHorse.id === leader.id) {
+                                 newCommentary = `${leaderHorse.name}、足色が鈍った！後続が襲いかかる！`;
+                             } else {
+                                 newCommentary = `${leaderHorse.name}、先頭だ！押し切れるか！？`;
+                             }
                         } else {
                              if (!finalResult) newCommentary = `ゴールまであと少し！`;
                         }
                         
-                        // Only update if changed to avoid flicker, but here we just set it
                         setCommentary(newCommentary);
                     }
 
@@ -848,6 +866,8 @@
                             let statusEffect = "";
                             if (p.status === 'late_start') statusEffect = "opacity-50"; 
                             if (p.status === 'kakari') statusEffect = "animate-pulse brightness-150"; 
+                            // [REALISM] Visual cue for tired horses
+                            if (p.status === 'tired') statusEffect = "grayscale";
 
                             return (
                                 <div
@@ -872,6 +892,7 @@
                                         </div>
                                         {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded">遅</div>}
                                         {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded">掛</div>}
+                                        {p.status === 'tired' && <div className="absolute -top-4 text-xs font-bold text-blue-300 bg-black px-1 rounded">バテ</div>}
                                     </div>
                                 </div>
                             );
@@ -903,7 +924,7 @@
                 </div>
             );
 
-            // *** BETTING TICKET (Updated for Tipster) ***
+            // *** BETTING TICKET (Index B) ***
             const BettingTicket = ({ bet, onDelete, isResult, hit, readOnly }) => (
                 <div className={`bg-white border-2 ${isResult ? (hit ? 'border-red-500' : 'border-gray-400') : (bet.isTipster ? 'border-purple-600' : 'border-green-700')} rounded shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}>
                     <div className={`${isResult ? (hit ? 'bg-red-500' : 'bg-gray-500') : (bet.isTipster ? 'bg-purple-600' : 'bg-green-700')} text-white text-xs px-2 py-1 flex justify-between items-center`}>
@@ -1210,10 +1231,10 @@
                             </div>
                         )}
 
-                        {/* Tipster Modal (Added) */}
+                        {/* Tipster Modal (Index B) */}
                         {phase === 'betting' && <TipsterModal isOpen={showTipster} onClose={() => setShowTipster(false)} onPurchase={purchaseTipsterPrediction} wallet={wallet} budget={tipsterBudget} setBudget={setTipsterBudget} course={tipsterCourse} setCourse={setTipsterCourse} />}
 
-                        {/* Tipster Floating Button (Added) */}
+                        {/* Tipster Floating Button */}
                         {phase === 'betting' && (
                             <button 
                                 onClick={() => setShowTipster(true)}
@@ -1253,7 +1274,7 @@
                                     </div>
                                 </div>
 
-                                {/* NEW: Betting Tickets Display */}
+                                {/* Betting Tickets Display */}
                                 {betSlip.length > 0 && (
                                     <div className="mt-4">
                                         <h3 className="text-white font-bold mb-2 flex items-center gap-2 text-sm px-2">
