@@ -43,6 +43,13 @@
         .horse-gallop {
             animation: gallop 0.6s infinite; 
         }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-blink {
+            animation: blink 1s infinite;
+        }
         /* Custom Scrollbar for history */
         .history-scroll::-webkit-scrollbar {
             width: 6px;
@@ -89,13 +96,18 @@
             "テイオー", "ブライアン", "キャップ", "シービー", "ヘイロー", "バクシン", "スカーレット",
             "ルドルフ", "グルーヴ", "デジタル", "カフェ", "キセキ", "ワンダー", "コンドル", "トップガン"
         ];
-        // Jockeys with simple "Popularity" weight (0-10)
+        
+        // Jockeys with skill weight (0-10) and Rank display
         const JOCKEYS = [
-            { name: "武 豊", weight: 10 }, { name: "ルメール", weight: 10 }, { name: "川田", weight: 9 }, 
-            { name: "横山", weight: 8 }, { name: "戸崎", weight: 8 }, { name: "福永", weight: 8 }, 
-            { name: "岩田", weight: 7 }, { name: "和田", weight: 6 }, { name: "デムーロ", weight: 9 }, 
-            { name: "松山", weight: 7 }, { name: "浜中", weight: 6 }, { name: "三浦", weight: 5 },
-            { name: "坂井", weight: 7 }, { name: "池添", weight: 8 }, { name: "幸", weight: 5 }
+            { name: "武 豊", weight: 10, rank: "S" }, { name: "ルメール", weight: 10, rank: "S" }, 
+            { name: "川田", weight: 9, rank: "A" }, { name: "デムーロ", weight: 9, rank: "A" },
+            { name: "横山", weight: 8, rank: "A" }, { name: "戸崎", weight: 8, rank: "A" }, 
+            { name: "福永", weight: 8, rank: "A" }, { name: "池添", weight: 8, rank: "A" }, 
+            { name: "岩田", weight: 7, rank: "B" }, { name: "松山", weight: 7, rank: "B" }, 
+            { name: "坂井", weight: 7, rank: "B" }, { name: "和田", weight: 6, rank: "C" }, 
+            { name: "浜中", weight: 6, rank: "C" }, { name: "三浦", weight: 5, rank: "C" },
+            { name: "幸", weight: 5, rank: "C" }, { name: "藤田", weight: 4, rank: "D" },
+            { name: "新人", weight: 3, rank: "D" }
         ];
 
         const RUNNING_STYLES = [
@@ -193,36 +205,32 @@
             // --- Game Logic ---
 
             const setupRace = () => {
-                const numHorses = 8; // Reverted to 8 horses
+                const numHorses = 8; 
                 const newHorses = [];
                 let totalPopularityScore = 0;
 
                 const usedNames = new Set();
+                const usedJockeys = new Set(); // Check for duplicate jockeys
                 let strengthPool = [];
                 
-                // 1. Generate Capability (True Strength)
+                // 1. Generate Capability
                 const racePattern = Math.random();
                 let patternName = "";
 
-                // Adjusted pool generation to ensure clear favorites
                 if (racePattern < 0.3) {
-                    // One Strong Favorite
                     patternName = "1強";
                     strengthPool.push(95 + Math.random() * 10); 
                     for(let k=0; k<7; k++) strengthPool.push(40 + Math.random() * 35); 
                 } else if (racePattern < 0.6) {
-                    // Two Strong
                     patternName = "2強";
                     strengthPool.push(90 + Math.random() * 8);
                     strengthPool.push(90 + Math.random() * 8);
                     for(let k=0; k<6; k++) strengthPool.push(40 + Math.random() * 35);
                 } else if (racePattern < 0.8) {
-                    // Three Strong
                     patternName = "3強";
                     for(let k=0; k<3; k++) strengthPool.push(85 + Math.random() * 10);
                     for(let k=0; k<5; k++) strengthPool.push(40 + Math.random() * 35);
                 } else {
-                    // Chaos (but still some variance)
                     patternName = "混戦";
                     const baseStrength = 60 + Math.random() * 10;
                     for(let k=0; k<8; k++) strengthPool.push(baseStrength + (Math.random() - 0.5) * 20); 
@@ -230,23 +238,28 @@
                 strengthPool.sort(() => Math.random() - 0.5);
 
                 for (let i = 0; i < numHorses; i++) {
-                    // True Capability
                     const strength = Math.max(20, Math.min(120, strengthPool[i]));
 
-                    // Basic Info
+                    // Name
                     let name = generateHorseName();
                     let attempts = 0;
                     while(usedNames.has(name) && attempts < 20) { name = generateHorseName(); attempts++; }
                     usedNames.add(name);
 
-                    // Jockey
-                    const jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
+                    // Jockey with Duplication Check
+                    let jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
+                    attempts = 0;
+                    while(usedJockeys.has(jockey.name) && attempts < 50) {
+                        jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
+                        attempts++;
+                    }
+                    usedJockeys.add(jockey.name);
 
-                    // Condition (-0.3 to +0.3)
+                    // Condition
                     const condition = (Math.random() * 0.6) - 0.3;
 
-                    // Generate Past Result based on Strength
-                    const perfBase = 120 - strength + (Math.random() * 30 - 15); // Reduced randomness for past rank
+                    // Past Result
+                    const perfBase = 120 - strength + (Math.random() * 30 - 15); 
                     let prevRank = 1;
                     if (perfBase < 30) prevRank = 1;
                     else if (perfBase < 40) prevRank = 2;
@@ -256,7 +269,7 @@
                     else prevRank = Math.floor(Math.random()*2)+7; 
                     if(prevRank > 8) prevRank = 8;
 
-                    // Weight Logic
+                    // Weight
                     const baseWeight = 460 + Math.floor(Math.random() * 80);
                     const weightDiff = Math.floor(Math.random() * 16) - 8; 
                     const currentWeight = baseWeight + weightDiff;
@@ -266,7 +279,8 @@
                         number: i + 1,
                         name: name,
                         jockey: jockey.name,
-                        jockeyWeight: jockey.weight,
+                        jockeyWeight: jockey.weight, // Skill Level (0-10)
+                        jockeyRank: jockey.rank,
                         strength: strength,
                         stamina: Math.random() * 0.4 + 0.8,
                         style: RUNNING_STYLES[Math.floor(Math.random() * RUNNING_STYLES.length)],
@@ -278,7 +292,7 @@
                     });
                 }
 
-                // 2. Calculate Odds based on "Visible Factors" (Not just Strength)
+                // 2. Calculate Odds
                 newHorses.forEach(h => {
                     let rankScore = 0;
                     if (h.prevRank === 1) rankScore = 100;
@@ -288,7 +302,6 @@
                     else rankScore = 20;
 
                     const jockeyScore = h.jockeyWeight * 3; 
-                    // High strength horses generally look better (muscle etc), so hype is correlated
                     const hype = (h.strength * 0.4) + (h.condition * 20) + (Math.random() * 10);
 
                     h.popularity = rankScore + jockeyScore + hype;
@@ -300,16 +313,14 @@
                 newHorses.forEach(horse => {
                     const prob = horse.popularity / totalPopularityScore;
                     let rawOdds = (1 / prob) * 0.8; 
-                    
                     if (rawOdds < 1.1) rawOdds = 1.1;
                     if (rawOdds > 300.0) rawOdds = 300.0 + (Math.random() * 200); 
-                    
                     horse.odds = parseFloat(rawOdds.toFixed(1));
                 });
 
                 setHorses(newHorses);
                 setBetSlip([]);
-                setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, lane: h.id, rank: null })));
+                setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, lane: h.id, rank: null, status: 'normal' })));
                 setFinalResult(null);
                 setPhase('betting');
                 setCommentary(`第${raceCount}レース (${patternName})、投票受付中！`);
@@ -368,9 +379,16 @@
                 }
 
                 setWallet(prev => prev - total);
-                setPhase('racing');
-                setCommentary("各馬ゲートイン完了... スタートしました！");
-                runRace();
+                setPhase('fanfare'); 
+                setCommentary("まもなく発走です...");
+                
+                setTimeout(() => setCommentary("ファンファーレが鳴り響きます！"), 300);
+                setTimeout(() => setCommentary("各馬ゲートイン完了..."), 1800);
+                setTimeout(() => {
+                    setPhase('racing');
+                    setCommentary("スタートしました！");
+                    runRace();
+                }, 2500);
             };
 
             // --- Race Simulation ---
@@ -382,10 +400,7 @@
                     speed: 0,
                     fatigue: 0,
                     rank: null,
-                    // *** SPEED LOGIC ADJUSTMENT ***
-                    // Increase the weight of Strength to ensure favorites win more often
-                    // Old: (h.strength / 150) + 0.8
-                    // New: (h.strength / 100) + 0.8 -> Stronger difference between 100 strength and 40 strength
+                    status: 'normal', 
                     maxSpeed: (h.strength / 100) + 0.8 
                 }));
                 
@@ -393,6 +408,17 @@
                 let time = 0;
                 let nextRank = 1;
                 let finishedOrder = [];
+
+                currentProgress = currentProgress.map(p => {
+                    const horse = horses.find(h => h.id === p.id);
+                    const lateStartChance = (10 - horse.jockeyWeight) * 0.01;
+                    if (Math.random() < lateStartChance) {
+                        p.status = 'late_start';
+                    }
+                    return p;
+                });
+
+                setRaceProgress(currentProgress); 
 
                 const loop = () => {
                     time += 0.1; 
@@ -405,20 +431,36 @@
                         const progressPct = p.dist / TOTAL_DISTANCE;
 
                         let targetSpeed = p.maxSpeed;
-                        
-                        // Reduced Random Factor to make race more predictable (less upsets for strong favorites)
-                        // Old: +/- 0.3
-                        // New: +/- 0.15
                         const randomFactor = (Math.random() - 0.5) * 0.3; 
 
-                        // Condition & Weight Debuff (Slightly reduced impact to favor raw strength)
-                        let conditionMod = horse.condition * 0.3; // Reduced from 0.4
+                        let conditionMod = horse.condition * 0.3;
                         if (horse.weightDiff > 0) {
                             conditionMod -= horse.weightDiff * 0.005; 
                         }
                         targetSpeed *= (1 + conditionMod);
 
-                        // Phases
+                        const fatigueRate = 0.02 * (1.0 - (horse.jockeyWeight * 0.02));
+
+                        if (p.status === 'late_start') {
+                            targetSpeed *= 0.5; 
+                            if (progressPct > 0.05) p.status = 'normal'; 
+                        }
+
+                        if (progressPct > 0.2 && progressPct < 0.7 && p.status === 'normal') {
+                            const kakariChance = (10 - horse.jockeyWeight) * 0.0005; 
+                            if (Math.random() < kakariChance) {
+                                p.status = 'kakari';
+                            }
+                        }
+                        
+                        if (p.status === 'kakari') {
+                            targetSpeed *= 1.15; 
+                            p.fatigue += (p.speed * fatigueRate * 3);
+                            if (Math.random() < 0.03) p.status = 'normal';
+                        } else {
+                            p.fatigue += (p.speed * fatigueRate);
+                        }
+
                         if (progressPct < 0.15) { 
                             if (horse.style.id === 0) targetSpeed *= 1.2; 
                             else if (horse.style.id === 3) targetSpeed *= 0.8; 
@@ -426,7 +468,7 @@
                             if (horse.style.id === 0) targetSpeed *= 0.95; 
                             else if (horse.style.id === 3) targetSpeed *= 0.9; 
                             else targetSpeed *= 0.9; 
-                            if (Math.random() < 0.01) targetSpeed *= 1.2; // Rare boost
+                            if (Math.random() < 0.01) targetSpeed *= 1.2; 
                         } else if (progressPct < 0.85) { 
                              if (horse.style.id === 1) targetSpeed *= 1.1; 
                              if (horse.style.id === 2) targetSpeed *= 1.2; 
@@ -435,13 +477,11 @@
                              else if (horse.style.id === 0) targetSpeed *= 0.8; 
                              else targetSpeed *= 1.0; 
                              
-                             // Fatigue randomness (Bonk)
                              if (p.fatigue > horse.strength * horse.stamina * (0.6 + Math.random())) {
                                  targetSpeed *= 0.5; 
                              }
                         }
 
-                        p.fatigue += (p.speed * 0.02);
                         const accel = (targetSpeed - p.speed) * 0.02; 
                         p.speed += accel + randomFactor;
                         
@@ -473,26 +513,32 @@
                     setRaceProgress([...currentProgress]);
                     setRaceTime(time);
 
-                    if (Math.floor(time * 10) % 200 === 0) { 
+                    if (Math.floor(time * 10) % 200 === 0 && phase === 'racing') { 
                         const leader = sorted[0];
                         const leaderHorse = horses.find(h => h.id === leader.id);
                         const pct = leader.dist / TOTAL_DISTANCE;
                         
-                        if (pct < 0.15) {
-                            setCommentary(`${leaderHorse.name}、好スタート！`);
+                        const badStartHorse = currentProgress.find(p => p.status === 'late_start');
+                        const kakariHorse = currentProgress.find(p => p.status === 'kakari');
+
+                        if (pct < 0.1) {
+                            if (badStartHorse) {
+                                const h = horses.find(x => x.id === badStartHorse.id);
+                                setCommentary(`おっと！${h.name}、出遅れてしまった！`);
+                            } else {
+                                setCommentary(`各馬、きれいなスタートを切りました。`);
+                            }
                         } else if (pct < 0.5) {
-                            setCommentary(`${leaderHorse.name}がレースを引っ張る！`);
-                        } else if (pct < 0.7) {
-                            setCommentary(`第3コーナー。後続も動いてきた！`);
+                            if (kakariHorse) {
+                                const h = horses.find(x => x.id === kakariHorse.id);
+                                setCommentary(`${h.name}、少し掛かっているか？抑えきれない様子！`);
+                            } else {
+                                setCommentary(`${leaderHorse.name}がレースを引っ張る！`);
+                            }
                         } else if (pct < 0.85) {
                             setCommentary(`4コーナーを回る！直線勝負だ！`);
                         } else if (pct < 0.95) {
-                            const second = sorted[1] ? horses.find(h => h.id === sorted[1].id) : null;
-                            if (second && (sorted[0].dist - sorted[1].dist < 50)) {
-                                setCommentary(`${leaderHorse.name}と${second.name}の叩き合い！`);
-                            } else {
-                                setCommentary(`${leaderHorse.name}が抜け出した！`);
-                            }
+                            setCommentary(`${leaderHorse.name}が抜け出した！`);
                         } else {
                             if (!finalResult) setCommentary(`ゴールまであと少し！`);
                         }
@@ -536,6 +582,14 @@
 
             // --- Components ---
             
+            const FanfareView = () => (
+                <div className="flex flex-col items-center justify-center h-64 bg-black/80 rounded-xl border-4 border-yellow-500 animate-in fade-in zoom-in duration-500">
+                    <div className="text-yellow-400 text-6xl mb-4 animate-bounce">🎺</div>
+                    <h2 className="text-4xl font-black text-white tracking-widest animate-pulse">G1 FANFARE</h2>
+                    <p className="text-gray-300 mt-4 text-sm">まもなくゲートが開きます...</p>
+                </div>
+            );
+
             const RaceTrack = ({ horses, progress }) => {
                 const getPos = (totalDistRun, laneIdx) => {
                     const trackL = 600;
@@ -549,8 +603,6 @@
                     
                     let d = (totalDistRun + startOffset) % perimeter;
 
-                    // 8 horses -> spread indices from 0 to 7
-                    // Center is around 3.5
                     const laneOffset = (laneIdx - 3.5) * 12; 
                     const r = trackR + laneOffset;
 
@@ -598,10 +650,15 @@
                             const p = progress.find(pr => pr.id === horse.id);
                             if(!p) return null;
                             const pos = getPos(p.dist, horse.id);
+                            
+                            let statusEffect = "";
+                            if (p.status === 'late_start') statusEffect = "opacity-50"; 
+                            if (p.status === 'kakari') statusEffect = "animate-pulse brightness-150"; 
+
                             return (
                                 <div
                                     key={horse.id}
-                                    className="absolute transition-transform duration-100 will-change-transform flex justify-center items-center"
+                                    className={`absolute transition-transform duration-100 will-change-transform flex justify-center items-center ${statusEffect}`}
                                     style={{
                                         left: `${pos.x / 10}%`, 
                                         top: `${pos.y / 4}%`,
@@ -619,6 +676,8 @@
                                         >
                                             {horse.number}.{horse.name}
                                         </div>
+                                        {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded">遅</div>}
+                                        {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded">掛</div>}
                                     </div>
                                 </div>
                             );
@@ -650,7 +709,8 @@
                 </div>
             );
 
-            const BettingTicket = ({ bet, onDelete, isResult, hit }) => (
+            // *** BETTING TICKET (New Read-Only Prop) ***
+            const BettingTicket = ({ bet, onDelete, isResult, hit, readOnly }) => (
                 <div className={`bg-white border-2 ${isResult ? (hit ? 'border-red-500' : 'border-gray-400') : 'border-green-700'} rounded shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}>
                     <div className={`${isResult ? (hit ? 'bg-red-500' : 'bg-gray-500') : 'bg-green-700'} text-white text-xs px-2 py-1 flex justify-between items-center`}>
                         <span className="font-bold flex items-center gap-1">
@@ -678,7 +738,7 @@
                             <div className="text-sm font-bold">
                                 {bet.amount.toLocaleString()}円
                             </div>
-                            {!isResult && (
+                            {!isResult && !readOnly && ( // Check readOnly here
                                 <button 
                                     onClick={() => onDelete(bet.id)}
                                     className="text-gray-400 hover:text-red-500 transition-colors p-1"
@@ -725,7 +785,6 @@
                             </div>
                         </div>
                         
-                        {/* Wallet & History with Hover */}
                         <div 
                             className="relative group cursor-pointer"
                             onMouseEnter={() => setShowHistory(true)}
@@ -789,7 +848,7 @@
                                     <div className="grid grid-cols-12 text-xs text-gray-500 bg-gray-50 p-2 font-bold text-center">
                                         <div className="col-span-1">枠</div>
                                         <div className="col-span-3 text-left pl-2">馬名</div>
-                                        <div className="col-span-2">騎手</div>
+                                        <div className="col-span-2">騎手(ランク)</div>
                                         <div className="col-span-2">脚質</div>
                                         <div className="col-span-2">馬体重(増減)</div>
                                         <div className="col-span-2">単オッズ</div>
@@ -810,7 +869,9 @@
                                                 </span>
                                             </div>
                                             <div className="col-span-3 pl-2 font-bold text-gray-800 truncate">{horse.name}</div>
-                                            <div className="col-span-2 text-center text-xs text-gray-600 truncate">{horse.jockey}</div>
+                                            <div className="col-span-2 text-center text-xs text-gray-600 truncate">
+                                                {horse.jockey} <span className="text-[10px] bg-gray-200 px-1 rounded">{horse.jockeyRank}</span>
+                                            </div>
                                             <div className="col-span-2 text-center text-xs text-gray-500">
                                                 <span className="px-1 bg-gray-200 rounded">{horse.style.label}</span>
                                             </div>
@@ -933,8 +994,15 @@
                             </div>
                         )}
 
+                        {/* Fanfare View */}
+                        {phase === 'fanfare' && (
+                            <div className="flex items-center justify-center h-64">
+                                <FanfareView />
+                            </div>
+                        )}
+
                         {/* Race View */}
-                        {phase !== 'betting' && (
+                        {phase === 'racing' && (
                             <div className="space-y-4 animate-in fade-in duration-700">
                                 <div className="bg-black text-yellow-400 font-bold text-center py-2 rounded-t-xl border-x-4 border-t-4 border-yellow-700 text-xl tracking-wider">
                                     {commentary}
@@ -954,6 +1022,20 @@
                                         ))}
                                     </div>
                                 </div>
+
+                                {/* NEW: Betting Tickets Display */}
+                                {betSlip.length > 0 && (
+                                    <div className="mt-4">
+                                        <h3 className="text-white font-bold mb-2 flex items-center gap-2 text-sm px-2">
+                                            <Ticket size={16} /> 購入した馬券
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
+                                            {betSlip.map(bet => (
+                                                <BettingTicket key={bet.id} bet={bet} onDelete={() => {}} isResult={false} hit={null} readOnly={true} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -972,7 +1054,8 @@
                                             <div className="col-span-3 text-right pr-2">オッズ</div>
                                         </div>
                                         <div className="space-y-2">
-                                            {finalResult.slice(0, 5).map((h, i) => (
+                                            {/* Show all horses in result */}
+                                            {finalResult.map((h, i) => (
                                                 <div key={h.id} className={`grid grid-cols-12 items-center text-sm p-1 rounded ${i===0 ? 'bg-yellow-200 font-bold' : i===1?'bg-gray-200':i===2?'bg-orange-100':''}`}>
                                                     <div className="col-span-2 text-center">
                                                         <span className={`inline-block w-6 h-6 rounded-full leading-6 ${i===0?'bg-yellow-500 text-white':i===1?'bg-gray-400 text-white':i===2?'bg-orange-400 text-white':'text-gray-500'}`}>{i+1}</span>
@@ -1009,7 +1092,6 @@
 
                                     <div className="text-center border-t pt-4">
                                         <div className="text-gray-500 mb-1 text-sm">今回の収支</div>
-                                        {/* Modified logic for balance display */}
                                         {(() => {
                                             const log = resultLog[0];
                                             if (!log) return null;
