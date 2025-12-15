@@ -706,7 +706,7 @@
 
 
         // ============================================================================================
-        //  MODE: KIRAKIRA (ゆめかわレースパーク)
+        //  MODE: KIRAKIRA (KIRAパレード)
         // ============================================================================================
         const KirakiraMode = ({ wallet, setWallet, raceCount, setRaceCount, resultLog, setResultLog, onOpenSwitch }) => {
             const RACE_TOTAL_DISTANCE = 2142;
@@ -714,7 +714,7 @@
             const HORSE_NAMES_SUFFIX = ["ユニコーン", "バニー", "キャット", "ドラゴン", "ペガサス", "キティ", "ベア", "エンジェル", "プリンセス", "ドール", "キャンディ", "ドリーム", "ムーン", "サン", "スノー", "スイーツ", "トゥインクル", "マーメイド", "スターライト", "ティアラ"];
             const JOCKEYS = [{ name: "シュガー☆ライダー", weight: 10, rank: "S" }, { name: "ラブリー・ドロップ", weight: 10, rank: "S" }, { name: "ミルクティー・プリン", weight: 9, rank: "A" }, { name: "キャンディ・ポップ", weight: 9, rank: "A" }, { name: "キラリん", weight: 8, rank: "A" }, { name: "ハートフルうさぎ", weight: 8, rank: "A" }, { name: "フェアリー☆ミント", weight: 8, rank: "A" }, { name: "リボン・スター", weight: 8, rank: "A" }, { name: "マカロン・スカイ", weight: 7, rank: "B" }, { name: "ピーチくまこ", weight: 7, rank: "B" }, { name: "ルナティックねこ", weight: 7, rank: "B" }, { name: "ソーダ・フロート", weight: 6, rank: "C" }, { name: "ポップコーン★ほし", weight: 6, rank: "C" }, { name: "ホイップ・クラウド", weight: 5, rank: "C" }, { name: "チョコチップ", weight: 5, rank: "C" }, { name: "ドリーム☆ひかり", weight: 4, rank: "D" }, { name: "スヤスヤねむり", weight: 3, rank: "D" }];
             const RUNNING_STYLES = [{ id: 0, name: "きらきらダッシュ", label: "✨先", desc: "はじまりからキラキラ全開で飛び出す" }, { id: 1, name: "ふんわり先頭", label: "♬前", desc: "かわいく前のほうで様子見しながら進む" }, { id: 2, name: "そよ風おいかけ", label: "☁中", desc: "中団からそっと追い上げるスタイル" }, { id: 3, name: "どきどきラストスパート", label: "💫後", desc: "最後にどきどき一気にまくるよ" }];
-            const BET_TYPES = { WIN: { id: 'WIN', name: 'いちばん星チャンス', count: 1, desc: 'いちばんにゴールするゆめ生き物をあてるよ' }, PLACE: { id: 'PLACE', name: 'さんばん星チャンス', count: 1, desc: '上位3着のどこかに入る子をあてる、ちょっとやさしめチャンス' }, QUINELLA: { id: 'QUINELLA', name: 'きらきらペア', count: 2, desc: '1・2着になるなかよしペアを当てる（順不同）' }, WIDE: { id: 'WIDE', name: 'なかよしゴール', count: 2, desc: '3着以内に入るなかよし2人を当てる（順不同・やさしめチャンス）' }, EXACTA: { id: 'EXACTA', name: 'ならんでゴール', count: 2, desc: '1着と2着をならび順までぴったり当てるよ' }, TRIO: { id: 'TRIO', name: 'きらきらトリオ', count: 3, desc: '1〜3着になるトリオを当てる（順不同）' }, TRIFECTA: { id: 'TRIFECTA', name: 'ゆめみるトリプル', count: 3, desc: '1〜3着をならび順までぴったり当てるゆめゆめ券' }};
+            const BET_TYPES = { WIN: { id: 'WIN', name: 'いちばん星チャンス', count: 1, desc: 'いちばんにゴールするおともだちをあてるよ' }, PLACE: { id: 'PLACE', name: 'さんばん星チャンス', count: 1, desc: '上位3着のどこかに入るおともだちをあてる、ちょっとやさしめチャンス' }, QUINELLA: { id: 'QUINELLA', name: 'きらきらペア', count: 2, desc: '1・2着になるなかよしペアを当てるよ！（順不同）' }, WIDE: { id: 'WIDE', name: 'なかよしゴール', count: 2, desc: '3着以内に入るなかよしのおともだちペアをえらぶよ！（順不同）' }, EXACTA: { id: 'EXACTA', name: 'ならんでゴール', count: 2, desc: '1着と2着をならび順までぴったり当てるよ！' }, TRIO: { id: 'TRIO', name: 'きらきらトリオ', count: 3, desc: '1〜3着になるトリオを当てる（順不同）' }, TRIFECTA: { id: 'TRIFECTA', name: 'ゆめみるトリプル', count: 3, desc: '1〜3着をならび順までぴったり当てるドリームチャンス！' }};
             const TIPSTER_COURSES = { SOLID: { id: 'SOLID', name: 'ほっこりコース', desc: '当たりやすさ重視のほわほわコース', type: 'PLACE' }, BALANCE:{ id: 'BALANCE',name: 'きらきらコース', desc: 'ちょうどいいドキドキ感のきらきらコース', type: 'QUINELLA' }, DREAM: { id: 'DREAM', name: 'ゆめみるコース', desc: '一発大きくゆめをつかみたいあなたへ', type: 'TRIFECTA' }};
 
             const [phase, setPhase] = useState('betting');
@@ -751,7 +751,7 @@
                     >
                         <span className="font-bold flex items-center gap-1">
                             {bet.isTipster ? <Sparkles size={12} /> : <Ticket size={12} />}
-                            {bet.isTipster ? 'ゆめ予想サロン' : 'ゆめかわレースパーク'}
+                            {bet.isTipster ? 'ゆめ予想サロン' : 'KIRAパレード'}
                         </span>
                         <span>{new Date(bet.id).toLocaleTimeString()} 発行</span>
                     </div>
@@ -889,7 +889,7 @@
                 }
 
                 setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
-                setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}ゆめパレード（${patternName}）きらきら受付中♪`); setSelectedHorses([null, null, null]);
+                setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}きらきらパレード（${patternName}）きらきら受付中♪`); setSelectedHorses([null, null, null]);
             };
             useEffect(() => setupRace(), [raceCount]);
 
@@ -920,7 +920,7 @@
             const addToSlip = () => {
                 const req = BET_TYPES[betType].count; const sel = selectedHorses.slice(0, req);
                 if (sel.includes(null)) { alert("いっしょに走ってほしい子をえらんでね。"); return; }
-                if (new Set(sel).size !== sel.length) { alert("同じゆめ生き物を重ねてえらぶことはできないよ。"); return; }
+                if (new Set(sel).size !== sel.length) { alert("同じおともだちを重ねてえらぶことはできないよ。"); return; }
                 if (betAmount <= 0) return;
                 const newBet = { id: Date.now(), type: betType, typeName: BET_TYPES[betType].name, selection: sel.map(idx => horses[idx]), amount: parseInt(betAmount), odds: calculateComboOdds(betType, sel.map(i => horses[i].id), horses), isTipster: false };
                 setBetSlip([...betSlip, newBet]);
@@ -929,8 +929,8 @@
                 const total = betSlip.reduce((s, b) => s + b.amount, 0);
                 if (total === 0 && !confirm("チケットなしで、ただ見て楽しむ？")) return;
                 if (total > wallet && !confirm(`ジュエルが少し足りないみたい…\nポシェット：${wallet.toLocaleString()}ジュエル\nゆめチケ：${total.toLocaleString()}ジュエル\n\nちょっとだけ未来のジュエルをあてにしてパレードに参加しちゃう？`)) return;
-                setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなくゆめパレードがはじまります…");
-                setTimeout(() => setCommentary("トランペットのファンファーレがひびきわたる！"), 300); setTimeout(() => setCommentary("ゆめ生き物たちがゲートにおさまっていく…"), 1800);
+                setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなくきらきらパレードがはじまります…");
+                setTimeout(() => setCommentary("トランペットのファンファーレがひびきわたる！"), 300); setTimeout(() => setCommentary("おともだちが並んでいます………"), 1800);
                 setTimeout(() => { setPhase('racing'); setCommentary("パレード、スタート！！"); runRace(); }, 2500);
             };
             const runRace = () => {
@@ -1042,7 +1042,7 @@
                             <Trophy className="text-pink-400" size={24} />
                             <div>
                                 <h1 className="font-bold text-lg leading-tight text-pink-600 flex items-center gap-2">
-                                    ゆめかわレースパーク
+                                    KIRA✪パレード
                                     <button 
                                         onClick={(e) => { e.stopPropagation(); if(phase !== 'racing') onOpenSwitch(); }} 
                                         className={`bg-pink-100 hover:bg-pink-200 p-1 rounded-full transition-colors ${phase === 'racing' ? 'opacity-50 cursor-not-allowed' : ''}`} 
@@ -1113,7 +1113,7 @@
                                         <div className="font-bold text-pink-500 text-sm mb-2 border-b border-pink-100 pb-1">{hoveredHorse.name}</div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
-                                                <div className="text-pink-300">前回のキラ度</div>
+                                                <div className="text-pink-300">前回のキラキラ順位</div>
                                                 <div className="font-bold text-lg">{hoveredHorse.prevRank}番め</div>
                                             </div>
                                             <div>
@@ -1260,7 +1260,7 @@
                                     {betSlip.length > 0 && (
                                         <div className="mb-6">
                                             <h3 className="font-bold text-pink-500 mb-2 flex items-center gap-2 text-xs">
-                                                <Ticket size={16} /> きみのゆめチケ結果
+                                                <Ticket size={16} /> あなたのゆめチケ結果
                                             </h3>
                                             <div className="space-y-2">
                                                 {betSlip.map(bet => (
@@ -1281,7 +1281,7 @@
                                         <div className="text-[10px] sm:text-xs text-pink-300 font-bold mt-1">
                                             (払戻：{resultLog[0]?.payout.toLocaleString()}、ゆめチケ購入：-{resultLog[0]?.betTotal.toLocaleString()})
                                         </div>
-                                        <button onClick={() => { setRaceCount(c=>c+1); }} className="mt-6 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-12 rounded-full shadow-lg hover:from-pink-600 hover:to-purple-600 transition-transform hover:scale-105 flex items-center justify-center gap-2 mx-auto text-sm"><RotateCcw size={18} /> つぎのゆめパレードへ</button>
+                                        <button onClick={() => { setRaceCount(c=>c+1); }} className="mt-6 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-12 rounded-full shadow-lg hover:from-pink-600 hover:to-purple-600 transition-transform hover:scale-105 flex items-center justify-center gap-2 mx-auto text-sm"><RotateCcw size={18} /> つぎのきらきらパレードへ</button>
                                     </div>
                                 </div>
                             </div>
