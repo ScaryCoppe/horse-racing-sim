@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIドリーム & Dream Parade 詳細設計書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-jsx.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        
+        .sidebar-link.active {
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 0.5rem;
+        }
+        
+        .diagram-container {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .mermaid {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .math-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #6366f1;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #1e293b;
+            overflow-x: auto;
+        }
+        
+        .example-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        /* Mobile Menu Animation */
+        #mobile-menu {
+            transition: max-height 0.3s ease-in-out;
+            max-height: 0;
+            overflow: hidden;
+        }
+        #mobile-menu.open {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col md:flex-row min-h-screen">
+
+    <!-- Mobile Header & Nav -->
+    <header class="md:hidden bg-slate-900 text-white sticky top-0 z-50 shadow-md">
+        <div class="flex justify-between items-center p-4">
+            <h1 class="font-bold text-lg tracking-wider">PROJECT SPEC</h1>
+            <button id="mobile-menu-btn" class="p-2 focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+        <nav id="mobile-menu" class="bg-slate-800 px-4">
+            <div class="py-2 space-y-1">
+                <a href="#overview" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">1. システム概要</a>
+                <a href="#architecture" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">2. アーキテクチャ</a>
+                <a href="#data" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">3. データ構造</a>
+                <a href="#logic" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">4. コアロジック</a>
+                <a href="#ui" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">5. UI/UXとReact</a>
+                <a href="#master" class="mobile-link block py-2 px-2 hover:bg-slate-700 rounded text-sm text-slate-300">6. マスタデータ</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Desktop Sidebar -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex-col shadow-xl flex-shrink-0 hidden md:flex sticky top-0 h-screen overflow-y-auto">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="font-bold text-white text-lg tracking-wider">PROJECT SPEC</h1>
+            <p class="text-xs text-slate-500 mt-1">GI Dream & Parade</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-1 text-sm">
+            <a href="#overview" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">1. システム概要</a>
+            <a href="#architecture" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">2. アーキテクチャ設計</a>
+            <a href="#data" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">3. データアーキテクチャ</a>
+            <a href="#logic" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">4. コアロジック詳細</a>
+            <a href="#ui" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">5. UI/UX設計とReact</a>
+            <a href="#master" class="sidebar-link block px-4 py-2 hover:bg-slate-800 hover:text-white transition">6. マスタデータ定義</a>
+        </nav>
+        <div class="p-4 border-t border-slate-800 text-xs text-center text-slate-600">
+            Generated by ScaryCoppe
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-full md:w-auto p-4 md:p-12 pb-32 overflow-x-hidden">
+        <div class="max-w-4xl mx-auto">
+            
+            <header class="mb-8 md:mb-12 border-b border-slate-200 pb-8">
+                <div class="inline-block bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded mb-2">Technical Specification</div>
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-4">競馬シミュレーションゲーム 詳細設計書</h1>
+                <p class="text-lg md:text-xl text-slate-500">プロジェクト名: GIドリーム & Dream Parade</p>
+            </header>
+
+            <!-- 1. システム概要 -->
+            <section id="overview" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    1. システム概要
+                </h2>
+                <p class="mb-4 leading-relaxed">
+                    本システムは、Reactを用いたシングルページアプリケーション（SPA）として動作する競馬シミュレーションゲームです。
+                    ユーザーは所持金を元手に馬券を購入し、ブラウザ上でリアルタイムに演算・描画されるレース結果に応じて配当を得ます。
+                </p>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">1.1 システム全体像 (アーキテクチャ図)</h3>
+                <div class="diagram-container shadow-sm">
+                    <div class="mermaid">
+graph TD
+    User(("ユーザー"))
+    subgraph Browser ["ブラウザ (Single Page App)"]
+        subgraph View ["View / Component"]
+            GameLauncher["GameLauncher<br>(ルート)"]
+            ModeNormal["NormalMode<br>(本格モード)"]
+            ModeKira["KirakiraMode<br>(キラキラモード)"]
+            DOM["DOM / 画面表示"]
+        end
+        
+        subgraph Logic ["Logic / State"]
+            Store["localStorage<br>(データ保存)"]
+            GlobalState["共通State<br>(所持金/履歴)"]
+            RaceLogic["レース演算ロジック<br>(物理演算/判定)"]
+        end
+    end
+
+    User -->|操作| GameLauncher
+    GameLauncher -->|Props| ModeNormal
+    GameLauncher -->|Props| ModeKira
+    
+    ModeNormal -->|イベント| RaceLogic
+    ModeKira -->|イベント| RaceLogic
+    
+    RaceLogic -->|State更新| GlobalState
+    GlobalState -->|再描画| View
+    View -->|更新| DOM
+    GlobalState -.->|永続化| Store
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. アーキテクチャ -->
+            <section id="architecture" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    2. アーキテクチャ設計
+                </h2>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">2.1 ReactにおけるMVCモデルの解釈</h3>
+                <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 font-bold text-slate-700 whitespace-nowrap">役割</th>
+                                <th class="px-6 py-3 font-bold text-slate-700 whitespace-nowrap">Reactでの実装</th>
+                                <th class="px-6 py-3 font-bold text-slate-700 min-w-[300px]">説明 & Java比較</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="px-6 py-4 font-bold text-blue-600">View</td>
+                                <td class="px-6 py-4 font-mono text-xs">JSX (Components)</td>
+                                <td class="px-6 py-4 text-slate-600">データの状態(State)が変化すると自動的に再描画されるUI定義。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 font-bold text-green-600">Model</td>
+                                <td class="px-6 py-4 font-mono text-xs">State & Hooks</td>
+                                <td class="px-6 py-4 text-slate-600"><code>useState</code>等で保持されるデータ。<br><strong>Java比較:</strong> Observableな値として振る舞うデータオブジェクト。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 font-bold text-red-600">Controller</td>
+                                <td class="px-6 py-4 font-mono text-xs">Handlers & Effects</td>
+                                <td class="px-6 py-4 text-slate-600">イベントをトリガーにロジックを実行し、Stateを更新する関数群。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">2.2 コンポーネント構成図</h3>
+                <div class="diagram-container shadow-sm">
+                    <div class="mermaid">
+classDiagram
+    class GameLauncher {
+        +State wallet
+        +State raceCount
+        +State mode
+        +render()
+    }
+    class NormalMode {
+        +State horses
+        +State betSlip
+        +runRace()
+        +render()
+    }
+    class KirakiraMode {
+        +State horses
+        +State betSlip
+        +runRace()
+        +render()
+    }
+    class BettingTicket {
+        +Props betData
+        +render()
+    }
+
+    GameLauncher *-- NormalMode
+    GameLauncher *-- KirakiraMode
+    NormalMode *-- BettingTicket
+    KirakiraMode *-- BettingTicket
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. データ -->
+            <section id="data" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    3. データアーキテクチャ詳細
+                </h2>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">3.1 永続化データ (localStorage)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-slate-200 rounded-lg text-sm">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left whitespace-nowrap">キー</th>
+                                <th class="px-4 py-2 text-left whitespace-nowrap">型</th>
+                                <th class="px-4 py-2 text-left whitespace-nowrap">初期値</th>
+                                <th class="px-4 py-2 text-left min-w-[200px]">説明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-2 font-mono text-purple-600">g1dream_wallet</td>
+                                <td class="px-4 py-2">Number</td>
+                                <td class="px-4 py-2">100,000</td>
+                                <td class="px-4 py-2">所持金（ジュエル）。破産時も借金可能。</td>
+                            </tr>
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-2 font-mono text-purple-600">g1dream_raceCount</td>
+                                <td class="px-4 py-2">Number</td>
+                                <td class="px-4 py-2">1</td>
+                                <td class="px-4 py-2">現在のレース数。</td>
+                            </tr>
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-2 font-mono text-purple-600">g1dream_resultLog</td>
+                                <td class="px-4 py-2">Array</td>
+                                <td class="px-4 py-2">[]</td>
+                                <td class="px-4 py-2">過去の収支履歴（JSON配列）。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">3.2 データモデル定義 (Horse) 詳細</h3>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                         <h4 class="font-bold text-slate-800 mb-2">基本属性</h4>
+                         <ul class="text-sm space-y-2 text-slate-600">
+                             <li><code class="font-bold">id</code>: システム内部識別子(0-7)。</li>
+                             <li><code class="font-bold">number</code>: 表示用馬番(1-8)。</li>
+                             <li><code class="font-bold">name</code>: 自動生成馬名。</li>
+                             <li><code class="font-bold">odds</code>: 確定オッズ。</li>
+                         </ul>
+                    </div>
+                    <div class="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                         <h4 class="font-bold text-red-600 mb-2">能力パラメータ</h4>
+                         <ul class="text-sm space-y-2 text-slate-600">
+                             <li><code class="font-bold">strength</code> (20-120): 基礎スピード。</li>
+                             <li><code class="font-bold">stamina</code> (0.8-1.2): バテにくさ。</li>
+                             <li><code class="font-bold">condition</code> (-0.3~+0.3): 当日の調子。</li>
+                             <li><code class="font-bold">style</code>: 脚質定数。</li>
+                         </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. ロジック -->
+            <section id="logic" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    4. コアロジック詳細
+                </h2>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">4.1 レースシミュレーション（距離の累積）</h3>
+                <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
+                    <h4 class="font-bold text-blue-800 mb-2">🏁 ゴール到達の判定基準</h4>
+                    <p class="text-sm text-blue-900 mb-2">
+                        レースの進行は<strong>「1フレームごとの移動距離の足し算（積分）」</strong>で管理されます。
+                    </p>
+                    <div class="math-box bg-white border border-blue-200">
+// 毎フレーム（約1/60秒）実行される処理
+CurrentDistance = PreviousDistance + Speed
+                    </div>
+                    <p class="text-sm text-blue-900 mt-2">
+                        この足し算を繰り返し、以下の定数に達した瞬間がゴールとなります。
+                    </p>
+                    <div class="flex items-center gap-4 mt-2">
+                        <span class="font-bold text-2xl text-slate-700">Goal = 2142</span>
+                        <span class="text-xs text-slate-500">(ゲーム内距離単位)</span>
+                    </div>
+                </div>
+
+                <div class="diagram-container shadow-sm">
+                    <div class="mermaid">
+flowchart TD
+    Start(["レース開始 (距離0)"]) --> LoopStart
+    
+    subgraph Loop ["1フレーム (約16.7ms) の処理"]
+        LoopStart[速度計算] --> Add["距離加算<br>dist += speed"]
+        Add --> Check{"dist >= 2142 ?"}
+    end
+    
+    Check -- No (まだ) --> LoopStart
+    Check -- Yes (到達!) --> Goal["ゴール判定<br>(着順確定)"]
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">4.2 物理演算ロジック詳細と計算式</h3>
+                
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 1: 基礎変数の定義</h4>
+                    <div class="math-box">
+maxSpeed = (strength / 100) + 0.8
+                    </div>
+                    <p class="text-xs text-slate-500">※ strengthが100の場合、maxSpeedは 1.8 となります。</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 2: 目標速度 (targetSpeed) の決定</h4>
+                    <div class="math-box">
+TargetSpeed = maxSpeed 
+              * (1 + condition * 0.3) 
+              * (脚質補正倍率)
+              - (体重増減ペナルティ)
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 3: 慣性移動と位置更新</h4>
+                    <p class="text-sm mb-2">急に速度を変えず、徐々に目標速度へ近づける処理（線形補間）です。</p>
+                    <div class="math-box">
+// 速度の更新 (0.02は加速度係数)
+currentSpeed += (TargetSpeed - currentSpeed) * 0.02
+
+// 位置の更新 (積分)
+distance += currentSpeed
+                    </div>
+                </div>
+
+                <!-- 具体例ボックス -->
+                <div class="example-box">
+                    <h4 class="font-bold text-green-800 text-lg mb-2">🧪 具体的な計算例: ブラックインパクト号</h4>
+                    <p class="text-sm text-slate-700 mb-4">
+                        以下の条件での「序盤 (スタート直後)」の1フレーム計算をシミュレーションします。
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-4 border-b border-green-200 pb-4">
+                        <ul class="list-disc list-inside">
+                            <li><strong>能力:</strong> 100</li>
+                            <li><strong>調子:</strong> +0.2 (絶好調)</li>
+                        </ul>
+                        <ul class="list-disc list-inside">
+                            <li><strong>脚質:</strong> 逃げ (補正 1.2倍)</li>
+                            <li><strong>現在速度:</strong> 0 (スタート)</li>
+                        </ul>
+                    </div>
+                    
+                    <ol class="list-decimal list-inside space-y-3 text-sm text-slate-800 font-mono">
+                        <li>
+                            <span class="font-bold text-indigo-600">MaxSpeed:</span>
+                            (100 / 100) + 0.8 = 1.8
+                        </li>
+                        <li>
+                            <span class="font-bold text-indigo-600">調子補正込み:</span>
+                            1.8 * 1.06 = 1.908
+                        </li>
+                        <li>
+                            <span class="font-bold text-indigo-600">TargetSpeed:</span>
+                            1.908 * 1.2 = <span class="bg-yellow-100 font-bold px-1">2.29</span>
+                        </li>
+                        <li>
+                            <span class="font-bold text-indigo-600">次フレーム速度:</span>
+                            0 + (2.29 - 0) * 0.02 = <span class="bg-red-100 font-bold px-1">0.046</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">4.4 予想屋アルゴリズム (Tipster Logic)</h3>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h4 class="font-bold text-purple-700 mb-2">スコア算出式</h4>
+                    <div class="math-box">
+Score = (strength * 0.4) 
+      + (condition * 50) 
+      + (jockeyWeight * 2) 
+      + Noise
+                    </div>
+                    <h4 class="font-bold text-purple-700 mb-2 mt-4">ノイズ (ゆらぎ)</h4>
+                    <div class="math-box">
+Noise = (Math.random() - 0.5) * 30
+                    </div>
+                </div>
+
+                <!-- 新規追加セクション: ランダム要素 -->
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">4.5 ランダムイベント・不確定要素 (Game Mechanics)</h3>
+                <p class="text-sm text-slate-600 mb-4">
+                    ゲームの予測不可能性を高め、単調な結果になることを防ぐために実装されている乱数要素（RNG）の一覧です。
+                </p>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-red-50 p-4 rounded border border-red-200">
+                        <h4 class="font-bold text-red-800 mb-2">大穴チャンス (ミラクル強化)</h4>
+                        <ul class="text-xs list-disc list-inside text-red-900 space-y-1">
+                            <li><strong>発生確率:</strong> 8% (レース生成時)</li>
+                            <li><strong>条件:</strong> オッズ15倍以上の穴馬が存在すること</li>
+                            <li><strong>効果:</strong> 対象馬の調子を「+0.3 (絶好調)」、能力を「+8」する。</li>
+                            <li><strong>目的:</strong> 人気薄の馬が激走する「ジャイアントキリング」を演出。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded border border-orange-200">
+                        <h4 class="font-bold text-orange-800 mb-2">レース展開パターン</h4>
+                        <ul class="text-xs list-disc list-inside text-orange-900 space-y-1">
+                            <li><strong>1強 (30%):</strong> 1頭だけ能力95-105、他は65-90。</li>
+                            <li><strong>2強 (30%):</strong> 2頭が能力90-98、他は65-90。</li>
+                            <li><strong>3強 (20%):</strong> 3頭が能力85-95、他は65-90。</li>
+                            <li><strong>混戦 (20%):</strong> 全員が能力60-70付近で拮抗。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
+                        <h4 class="font-bold text-yellow-800 mb-2">レース中のアクシデント</h4>
+                        <ul class="text-xs list-disc list-inside text-yellow-900 space-y-1">
+                            <li><strong>出遅れ:</strong> スタート時に判定。騎手ランクが低いほど高確率。速度が一時的に半減。</li>
+                            <li><strong>掛かり (暴走):</strong> 道中判定。騎手ランクが低いほど高確率。速度1.15倍だがスタミナ消費3.5倍。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded border border-blue-200">
+                        <h4 class="font-bold text-blue-800 mb-2">その他の揺らぎ</h4>
+                        <ul class="text-xs list-disc list-inside text-blue-900 space-y-1">
+                            <li><strong>速度ノイズ:</strong> 毎フレーム <code>(random - 0.5) * 0.3</code> の微小な速度変動。</li>
+                            <li><strong>予想屋ノイズ:</strong> スコア算出時に±15点の誤差を付与。</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. UI/UX -->
+            <section id="ui" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    5. UI/UX 設計とReactの実践 (詳細解説)
+                </h2>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">5.1 Reactコンポーネントの構造設計思想</h3>
+                <p class="text-sm text-slate-600 mb-4">
+                    このゲームでは、<strong>「Container / Presentational パターン」</strong>を現代的なHooksベースで解釈した設計を採用しています。
+                </p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded shadow-sm border">
+                        <h4 class="font-bold text-blue-600 mb-2">親: GameLauncher (Container)</h4>
+                        <p class="text-xs text-slate-600 mb-2">データの「銀行」兼「ゲームマスター」です。</p>
+                        <ul class="text-xs list-disc list-inside text-slate-500 space-y-1">
+                            <li>所持金 (Wallet) の管理</li>
+                            <li>ゲーム全体の履歴管理</li>
+                            <li>モード（Normal/Kirakira）の切り替え制御</li>
+                            <li><strong>UIを持たず、ロジックとデータ管理に徹します。</strong></li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow-sm border">
+                        <h4 class="font-bold text-green-600 mb-2">子: ModeComponents (Presentational)</h4>
+                        <p class="text-xs text-slate-600 mb-2">具体的な「現場」のUIとロジックです。</p>
+                        <ul class="text-xs list-disc list-inside text-slate-500 space-y-1">
+                            <li>レース画面の描画</li>
+                            <li>馬券購入UIの表示</li>
+                            <li>親から受け取った <code>setWallet</code> 関数を使って所持金を操作します。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">5.2 状態管理: "Lifting State Up" (ステートのリフトアップ)</h3>
+                <p class="text-sm text-slate-600 mb-2">
+                    React初心者にとって最も重要な概念の一つが、この「リフトアップ」です。
+                </p>
+                <div class="bg-slate-50 border-l-4 border-orange-400 p-4 mb-4">
+                    <h5 class="font-bold text-orange-800 text-sm">なぜこれが必要か？</h5>
+                    <p class="text-xs text-slate-600 mt-1">
+                        もし「所持金」を各モード（NormalMode）の中で管理してしまうと、<strong>モードを切り替えた瞬間に所持金がリセットされてしまう</strong>からです。<br>
+                        コンポーネントが破棄されると、その内部ステートも消滅します。だからこそ、一つ上の親（GameLauncher）にデータを預ける必要があります。
+                    </p>
+                </div>
+                <pre class="rounded-lg text-xs"><code class="language-jsx">// 親コンポーネント (GameLauncher)
+const GameLauncher = () => {
+    // ここでデータを管理する
+    const [wallet, setWallet] = useState(100000);
+
+    return (
+        // 子には「現在の値」と「更新用関数」を渡す
+        <NormalMode wallet={wallet} setWallet={setWallet} />
+    );
+};</code></pre>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">5.3 パフォーマンス最適化: 描画と計算の分離</h3>
+                <p class="text-sm text-slate-600 mb-2">
+                    ゲーム開発特有のテクニックとして、<strong>「Reactのレンダリングサイクル」と「ゲームループ」の使い分け</strong>があります。
+                </p>
+                <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm mb-4">
+                    <table class="min-w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b">
+                            <tr>
+                                <th class="px-4 py-2">種類</th>
+                                <th class="px-4 py-2">使用フック</th>
+                                <th class="px-4 py-2">用途</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="px-4 py-2 font-bold">画面用データ</td>
+                                <td class="px-4 py-2 font-mono text-xs">useState</td>
+                                <td class="px-4 py-2 text-xs">馬の位置など、画面に見えるもの。<br>更新するとReactが再描画を走らせる。</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2 font-bold">計算用データ</td>
+                                <td class="px-4 py-2 font-mono text-xs">useRef</td>
+                                <td class="px-4 py-2 text-xs">アニメーションIDや前フレームの時間など。<br>更新しても<strong>再描画は起きない</strong>（高速）。</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-sm text-slate-600">
+                    毎フレーム発生する計算の全てで <code>useState</code> を使うと、Reactの再描画処理が追いつかずカクつく原因になります。
+                    そのため、内部的な計算には <code>useRef</code> やローカル変数を使い、最後に一度だけ <code>setState</code> して画面に反映させるのが定石です。
+                </p>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">5.4 レスポンシブUIの実装 (Tailwind)</h3>
+                <p class="text-sm text-slate-600 mb-2">
+                    CSSファイルを書かずに、クラス名だけでスマホ対応を行っています。
+                </p>
+                <ul class="text-xs space-y-2 font-mono bg-slate-100 p-4 rounded text-slate-700">
+                    <li><span class="font-bold text-blue-600">hidden md:flex</span>: スマホでは非表示、中画面以上でFlex表示（サイドバー等）。</li>
+                    <li><span class="font-bold text-blue-600">w-full md:w-auto</span>: スマホでは幅100%、PCでは自動幅。</li>
+                    <li><span class="font-bold text-blue-600">grid-cols-1 md:grid-cols-2</span>: スマホでは1列、PCでは2列グリッド。</li>
+                </ul>
+            </section>
+
+            <!-- 6. マスタデータ -->
+            <section id="master" class="mb-16 scroll-mt-24">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center border-l-4 border-blue-500 pl-3">
+                    6. マスタデータ定義 (詳細)
+                </h2>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">6.1 賭け式 (BET_TYPES)</h3>
+                <div class="overflow-x-auto mb-8">
+                    <table class="min-w-full text-sm border bg-white table-auto">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left whitespace-nowrap">ID</th>
+                                <th class="px-4 py-2 text-left whitespace-nowrap">名前</th>
+                                <th class="px-4 py-2 text-left">選択数</th>
+                                <th class="px-4 py-2 text-left">的中条件</th>
+                                <th class="px-4 py-2 text-left min-w-[200px]">オッズ計算式</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">WIN</td>
+                                <td class="px-4 py-2">単勝</td>
+                                <td class="px-4 py-2">1</td>
+                                <td class="px-4 py-2">1着のみ</td>
+                                <td class="px-4 py-2 font-mono text-xs">odds[0]</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">PLACE</td>
+                                <td class="px-4 py-2">複勝</td>
+                                <td class="px-4 py-2">1</td>
+                                <td class="px-4 py-2">3着以内</td>
+                                <td class="px-4 py-2 font-mono text-xs">odds[0] / 3.0</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">QUINELLA</td>
+                                <td class="px-4 py-2">馬連</td>
+                                <td class="px-4 py-2">2</td>
+                                <td class="px-4 py-2">1-2着 (順不同)</td>
+                                <td class="px-4 py-2 font-mono text-xs">(odds1 * odds2) / 2.5</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">WIDE</td>
+                                <td class="px-4 py-2">ワイド</td>
+                                <td class="px-4 py-2">2</td>
+                                <td class="px-4 py-2">3着以内の2頭</td>
+                                <td class="px-4 py-2 font-mono text-xs">(odds1 * odds2) / 4.5</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">EXACTA</td>
+                                <td class="px-4 py-2">馬単</td>
+                                <td class="px-4 py-2">2</td>
+                                <td class="px-4 py-2">1-2着 (着順通り)</td>
+                                <td class="px-4 py-2 font-mono text-xs">(odds1 * odds2) / 1.2</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">TRIO</td>
+                                <td class="px-4 py-2">3連複</td>
+                                <td class="px-4 py-2">3</td>
+                                <td class="px-4 py-2">1-3着 (順不同)</td>
+                                <td class="px-4 py-2 font-mono text-xs">(odds1*2*3) / 7.0</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">TRIFECTA</td>
+                                <td class="px-4 py-2">3連単</td>
+                                <td class="px-4 py-2">3</td>
+                                <td class="px-4 py-2">1-3着 (着順通り)</td>
+                                <td class="px-4 py-2 font-mono text-xs">(odds1*2*3) / 1.5</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">6.2 脚質 (RUNNING_STYLES) 詳細パラメータ</h3>
+                <div class="overflow-x-auto mb-8">
+                    <table class="min-w-full text-sm border bg-white text-center">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">ID</th>
+                                <th class="px-4 py-2 text-left">名前</th>
+                                <th class="px-4 py-2">序盤 (0-15%)</th>
+                                <th class="px-4 py-2">中盤 (15-60%)</th>
+                                <th class="px-4 py-2">勝負所 (60-85%)</th>
+                                <th class="px-4 py-2">終盤 (85%-)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 text-left font-bold">0</td>
+                                <td class="px-4 py-2 text-left">逃げ</td>
+                                <td class="px-4 py-2 text-red-600 bg-red-50">1.2倍</td>
+                                <td class="px-4 py-2">0.9倍</td>
+                                <td class="px-4 py-2">0.8倍</td>
+                                <td class="px-4 py-2 text-blue-600 bg-blue-50">0.8倍</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 text-left font-bold">1</td>
+                                <td class="px-4 py-2 text-left">先行</td>
+                                <td class="px-4 py-2">1.0倍</td>
+                                <td class="px-4 py-2">0.9倍</td>
+                                <td class="px-4 py-2 text-green-600 bg-green-50">1.1倍</td>
+                                <td class="px-4 py-2">1.0倍</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 text-left font-bold">2</td>
+                                <td class="px-4 py-2 text-left">差し</td>
+                                <td class="px-4 py-2">1.0倍</td>
+                                <td class="px-4 py-2">0.9倍</td>
+                                <td class="px-4 py-2 text-green-600 bg-green-50">1.2倍</td>
+                                <td class="px-4 py-2">1.0倍</td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 text-left font-bold">3</td>
+                                <td class="px-4 py-2 text-left">追込</td>
+                                <td class="px-4 py-2 text-blue-600 bg-blue-50">0.8倍</td>
+                                <td class="px-4 py-2">0.9倍</td>
+                                <td class="px-4 py-2">1.0倍</td>
+                                <td class="px-4 py-2 text-red-600 bg-red-50">1.5倍</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">6.3 騎手データ分布 (JOCKEYS)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded border">
+                        <h4 class="font-bold text-slate-700 mb-2">ランクごとの特徴</h4>
+                        <table class="w-full text-sm">
+                            <tr class="border-b"><td class="py-1">Sランク</td><td class="font-bold text-red-600">重み: 10</td><td>出遅れ率: 極低</td></tr>
+                            <tr class="border-b"><td class="py-1">Aランク</td><td class="font-bold text-orange-600">重み: 9-8</td><td>出遅れ率: 低</td></tr>
+                            <tr class="border-b"><td class="py-1">Bランク</td><td class="font-bold text-green-600">重み: 7</td><td>出遅れ率: 中</td></tr>
+                            <tr class="border-b"><td class="py-1">Cランク</td><td class="font-bold text-blue-600">重み: 6-5</td><td>出遅れ率: 高</td></tr>
+                            <tr><td class="py-1">Dランク</td><td class="font-bold text-slate-500">重み: 4-3</td><td>出遅れ率: 極高</td></tr>
+                        </table>
+                    </div>
+                    <div class="bg-white p-4 rounded border">
+                        <h4 class="font-bold text-slate-700 mb-2">実装データ (抜粋)</h4>
+                        <pre class="text-xs bg-slate-100 p-2 rounded overflow-auto h-32">
+{ name: "武 豊", weight: 10, rank: "S" },
+{ name: "ルメール", weight: 10, rank: "S" },
+{ name: "川田", weight: 9, rank: "A" },
+{ name: "デムーロ", weight: 9, rank: "A" },
+{ name: "横山", weight: 8, rank: "A" },
+{ name: "戸崎", weight: 8, rank: "A" },
+{ name: "岩田", weight: 7, rank: "B" },
+{ name: "和田", weight: 6, rank: "C" },
+{ name: "藤田", weight: 4, rank: "D" },
+{ name: "新人", weight: 3, rank: "D" }
+...他全17名
+                        </pre>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">6.4 予想屋コース (TIPSTER_COURSES)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm border bg-white">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left">ID</th>
+                                <th class="px-4 py-2 text-left">コース名</th>
+                                <th class="px-4 py-2 text-left">推奨券種</th>
+                                <th class="px-4 py-2 text-left">選定ロジック</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">SOLID</td>
+                                <td class="px-4 py-2">堅実コース</td>
+                                <td class="px-4 py-2">複勝 (PLACE)</td>
+                                <td class="px-4 py-2 text-slate-600">
+                                    能力・調子・騎手から算出した総合スコアが<strong>最も高い1頭</strong>を選択。
+                                </td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">BALANCE</td>
+                                <td class="px-4 py-2">バランス</td>
+                                <td class="px-4 py-2">馬連 (QUINELLA)</td>
+                                <td class="px-4 py-2 text-slate-600">
+                                    総合スコア<strong>1位と2位</strong>の組み合わせを選択。的中率と配当のバランス重視。
+                                </td>
+                            </tr>
+                            <tr class="border-t">
+                                <td class="px-4 py-2 font-mono font-bold">DREAM</td>
+                                <td class="px-4 py-2">一攫千金</td>
+                                <td class="px-4 py-2">3連単 (TRIFECTA)</td>
+                                <td class="px-4 py-2 text-slate-600">
+                                    スコア上位2頭に加え、<strong>オッズ10倍以上の穴馬</strong>の中で最も調子が良い馬を3頭目に組み込む。
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </section>
+
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            mermaid.initialize({ startOnLoad: true, theme: 'default' });
+            
+            // Mobile Menu Logic
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileLinks = document.querySelectorAll('.mobile-link');
+            
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('open');
+            });
+            
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.remove('open');
+                });
+            });
+        });
+        
+        // Active Scroll Logic
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.sidebar-link');
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
