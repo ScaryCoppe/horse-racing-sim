@@ -3,73 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>競馬シミュレーション - GIドリーム</title>
+    <title>GIドリーム & Dream Parade</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap');
+        
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
+            transition: background 0.5s ease, color 0.5s ease;
+        }
+
+        /* --- Normal Mode Styles --- */
+        .mode-normal-body {
             background-color: #1a2e1a;
             color: #fff;
         }
-        .grass-pattern {
+        .grass-pattern-normal {
             background-color: #2d5a27;
             background-image: linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
             background-size: 50px 50px;
         }
-        .ticket-pattern {
+        .ticket-pattern-normal {
             background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
             background-size: 4px 4px;
         }
-        .stamp-hit {
-            border: 4px solid #ef4444;
-            color: #ef4444;
-            transform: rotate(-12deg);
+
+        /* --- Kirakira Mode Styles --- */
+        .mode-kirakira-body {
+            background:
+                radial-gradient(circle at 10% 0%, #ffe6fa 0, transparent 40%),
+                radial-gradient(circle at 90% 0%, #e0f2ff 0, transparent 40%),
+                radial-gradient(circle at 0% 100%, #ffe4e6 0, transparent 40%),
+                radial-gradient(circle at 100% 100%, #e9d5ff 0, transparent 40%),
+                linear-gradient(180deg, #fff5fb 0, #f0f9ff 50%, #ffeef7 100%);
+            color: #4b3b52;
+            background-attachment: fixed;
         }
-        .stamp-miss {
-            border: 4px solid #6b7280;
-            color: #6b7280;
-            transform: rotate(12deg);
+        .grass-pattern-kirakira {
+            background-color: #ffe4f5;
+            background-image:
+                linear-gradient(0deg,
+                    transparent 24%,
+                    rgba(255, 255, 255, .7) 25%,
+                    rgba(255, 255, 255, .7) 26%,
+                    transparent 27%,
+                    transparent 74%,
+                    rgba(255, 255, 255, .7) 75%,
+                    rgba(255, 255, 255, .7) 76%,
+                    transparent 77%,
+                    transparent),
+                linear-gradient(90deg,
+                    transparent 24%,
+                    rgba(255, 255, 255, .7) 25%,
+                    rgba(255, 255, 255, .7) 26%,
+                    transparent 27%,
+                    transparent 74%,
+                    rgba(255, 255, 255, .7) 75%,
+                    rgba(255, 255, 255, .7) 76%,
+                    transparent 77%,
+                    transparent);
+            background-size: 50px 50px;
         }
+        .ticket-pattern-kirakira {
+            background-image: radial-gradient(#fde7ff 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+
+        /* --- Shared / Utility --- */
+        .stamp-hit { transform: rotate(-12deg); }
+        .stamp-miss { transform: rotate(12deg); }
+
         @keyframes gallop {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             25% { transform: translateY(-1px) rotate(-1deg); }
             50% { transform: translateY(-2px) rotate(0deg); }
             75% { transform: translateY(-1px) rotate(1deg); }
         }
-        .horse-gallop {
-            animation: gallop 0.6s infinite; 
-        }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .animate-blink {
-            animation: blink 1s infinite;
-        }
-        /* Custom Scrollbar for history */
-        .history-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .history-scroll::-webkit-scrollbar-track {
-            background: #1f2937; 
-        }
-        .history-scroll::-webkit-scrollbar-thumb {
-            background: #4b5563; 
-            border-radius: 3px;
-        }
+        .horse-gallop { animation: gallop 0.6s infinite; }
+        
+        .history-scroll::-webkit-scrollbar { width: 6px; }
+        .history-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        .history-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Icons ---
+        // --- Shared Icons ---
         const IconBase = ({ size = 24, className = "", children }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {children}
@@ -83,848 +109,48 @@
         const Ticket = (p) => <IconBase {...p}><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></IconBase>;
         const Info = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
         const Sparkles = (p) => <IconBase {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
+        const SwitchIcon = (p) => <IconBase {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></IconBase>;
 
-        // --- Constants & Data ---
-        const RACE_TOTAL_DISTANCE = 2142; 
-
-        const HORSE_NAMES_PREFIX = [
-            "ブラック", "サイレンス", "ディープ", "スペシャル", "ゴールド", "メジロ", 
-            "トウカイ", "ナリタ", "オグリ", "ミスター", "キング", "サクラ", "ダイワ", "ウオッカ",
-            "シンボリ", "エア", "アグネス", "マンハッタン", "フジ", "グラス", "エル", "マヤノ", "ビワ", "ライス"
-        ];
-        const HORSE_NAMES_SUFFIX = [
-            "インパクト", "スズカ", "ウィーク", "シップ", "マックイーン", 
-            "テイオー", "ブライアン", "キャップ", "シービー", "ヘイロー", "バクシン", "スカーレット",
-            "ルドルフ", "グルーヴ", "デジタル", "カフェ", "キセキ", "ワンダー", "コンドル", "トップガン"
-        ];
-        
-        // Jockeys with skill weight (0-10) and Rank display
-        const JOCKEYS = [
-            { name: "武 豊", weight: 10, rank: "S" }, { name: "ルメール", weight: 10, rank: "S" }, 
-            { name: "川田", weight: 9, rank: "A" }, { name: "デムーロ", weight: 9, rank: "A" },
-            { name: "横山", weight: 8, rank: "A" }, { name: "戸崎", weight: 8, rank: "A" }, 
-            { name: "福永", weight: 8, rank: "A" }, { name: "池添", weight: 8, rank: "A" }, 
-            { name: "岩田", weight: 7, rank: "B" }, { name: "松山", weight: 7, rank: "B" }, 
-            { name: "坂井", weight: 7, rank: "B" }, { name: "和田", weight: 6, rank: "C" }, 
-            { name: "浜中", weight: 6, rank: "C" }, { name: "三浦", weight: 5, rank: "C" },
-            { name: "幸", weight: 5, rank: "C" }, { name: "藤田", weight: 4, rank: "D" },
-            { name: "新人", weight: 3, rank: "D" }
-        ];
-
-        const RUNNING_STYLES = [
-            { id: 0, name: "逃げ", label: "逃", desc: "序盤から先頭に立つ" },
-            { id: 1, name: "先行", label: "先", desc: "好位につけて抜け出す" },
-            { id: 2, name: "差し", label: "差", desc: "中団から末脚を伸ばす" },
-            { id: 3, name: "追込", label: "追", desc: "後方から一気にごぼう抜き" },
-        ];
-
-        const BET_TYPES = {
-            WIN: { id: 'WIN', name: '単勝', count: 1, desc: '1着になる馬を当てます' },
-            PLACE: { id: 'PLACE', name: '複勝', count: 1, desc: '3着以内に入る馬を当てます' },
-            QUINELLA: { id: 'QUINELLA', name: '馬連', count: 2, desc: '1着と2着になる馬の組み合わせを当てます（順不同）' },
-            WIDE: { id: 'WIDE', name: 'ワイド', count: 2, desc: '3着以内に入る馬のうち、2頭の組み合わせを当てます（順不同）' },
-            EXACTA: { id: 'EXACTA', name: '馬単', count: 2, desc: '1着と2着になる馬を、着順通りに当てます' },
-            TRIO: { id: 'TRIO', name: '3連複', count: 3, desc: '1着、2着、3着になる馬の組み合わせを当てます（順不同）' },
-            TRIFECTA: { id: 'TRIFECTA', name: '3連単', count: 3, desc: '1着、2着、3着になる馬を、着順通りに当てます' },
-        };
-
-        const TIPSTER_COURSES = {
-            SOLID: { id: 'SOLID', name: '堅実コース', desc: '的中率重視！コツコツ稼ぎたいあなたに。', type: 'PLACE' },
-            BALANCE: { id: 'BALANCE', name: 'バランスコース', desc: '回収率重視。馬連でしっかり利益を！', type: 'QUINELLA' },
-            DREAM: { id: 'DREAM', name: '一攫千金コース', desc: '夢の万馬券！穴馬を絡めた3連単勝負！', type: 'TRIFECTA' },
-        };
-
-        const generateHorseName = () => {
-            const pre = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)];
-            const suf = HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)];
-            return pre + suf;
-        };
-
-        // --- Helper Functions ---
-
-        const calculateComboOdds = (type, horseIndices, horses) => {
-            if (!horseIndices.every(idx => idx !== null && idx !== undefined)) return 0;
-            const probs = horseIndices.map(idx => 1 / horses[idx].odds); 
-            let jointProb = 1;
-            
-            if (type === BET_TYPES.WIN.id) {
-                jointProb = probs[0];
-            } else if (type === BET_TYPES.PLACE.id) {
-                // Place is roughly 3x Win probability
-                jointProb = probs[0] * 3.0;
-            } else if (type === BET_TYPES.QUINELLA.id) {
-                // Quinella (Top 2 any order)
-                jointProb = probs[0] * probs[1] * 2.5; 
-            } else if (type === BET_TYPES.WIDE.id) {
-                // Wide (Top 3 any 2) - Easiest of combo bets
-                jointProb = probs[0] * probs[1] * 4.5; 
-            } else if (type === BET_TYPES.EXACTA.id) {
-                // Exacta (Top 2 exact order) - Harder than Quinella
-                jointProb = probs[0] * probs[1] * 1.2;
-            } else if (type === BET_TYPES.TRIO.id) {
-                jointProb = probs[0] * probs[1] * probs[2] * 7.0; 
-            } else if (type === BET_TYPES.TRIFECTA.id) {
-                jointProb = probs[0] * probs[1] * probs[2] * 1.5; 
+        const resetGame = () => {
+            if (confirm("データを初期化して最初から遊びますか？\n（所持金、戦績がすべてリセットされます）")) {
+                localStorage.removeItem('g1dream_wallet');
+                localStorage.removeItem('g1dream_raceCount');
+                localStorage.removeItem('g1dream_resultLog');
+                window.location.reload();
             }
-
-            let odds = (1 / jointProb) * 0.75; 
-            if (type !== BET_TYPES.WIN.id && odds < 1.1) odds = 1.1;
-            if (type === BET_TYPES.PLACE.id && odds < 1.0) odds = 1.0; 
-            
-            return Math.min(99999.9, Math.max(1.0, parseFloat(odds.toFixed(1))));
-        };
-        
-        const checkWin = (bet, finishOrder) => {
-            if (!finishOrder || finishOrder.length < 3) return false;
-            
-            const ids = bet.selection.map(h => h.id);
-            const r1 = finishOrder[0].id;
-            const r2 = finishOrder[1].id;
-            const r3 = finishOrder[2].id;
-
-            if (bet.type === 'WIN') {
-                return ids[0] === r1;
-            } else if (bet.type === 'PLACE') {
-                return ids[0] === r1 || ids[0] === r2 || ids[0] === r3;
-            } else if (bet.type === 'QUINELLA') {
-                const top2 = [r1, r2];
-                return top2.includes(ids[0]) && top2.includes(ids[1]);
-            } else if (bet.type === 'WIDE') {
-                const top3 = [r1, r2, r3];
-                return top3.includes(ids[0]) && top3.includes(ids[1]);
-            } else if (bet.type === 'EXACTA') {
-                return ids[0] === r1 && ids[1] === r2;
-            } else if (bet.type === 'TRIO') {
-                const top3 = [r1, r2, r3].sort().join(',');
-                const sel = [...ids].sort().join(',');
-                return top3 === sel;
-            } else if (bet.type === 'TRIFECTA') {
-                return ids[0] === r1 && ids[1] === r2 && ids[2] === r3;
-            }
-            return false;
         };
 
-        // --- Extracted Tipster Modal Component ---
-        const TipsterModal = ({ isOpen, onClose, onPurchase, wallet, budget, setBudget, course, setCourse }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="bg-purple-600 text-white p-4 flex justify-between items-center">
-                            <h3 className="text-lg font-bold flex items-center gap-2"><Sparkles /> 予想屋の部屋</h3>
-                            <button onClick={onClose} className="text-2xl hover:text-gray-300">&times;</button>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-gray-600 mb-4 text-sm font-bold">
-                                「わしは予想屋さんじゃ。調子のいい馬見えておるぞ。」
-                            </p>
-                            
-                            <div className="mb-4">
-                                <label className="block text-sm font-bold text-gray-700 mb-1">予算 (所持金: {wallet.toLocaleString()}円)</label>
-                                <input 
-                                    type="number" 
-                                    className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 text-gray-900 bg-white placeholder-gray-500"
-                                    style={{ color: 'black', backgroundColor: 'white' }}
-                                    value={budget}
-                                    onChange={(e) => setBudget(e.target.value)}
-                                    step="100"
-                                />
-                            </div>
-
-                            <div className="space-y-3 mb-6">
-                                {Object.values(TIPSTER_COURSES).map(c => (
-                                    <div 
-                                        key={c.id}
-                                        onClick={() => setCourse(c.id)}
-                                        className={`p-3 border rounded-lg cursor-pointer transition-all ${course === c.id ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-200 hover:bg-gray-50'}`}
-                                    >
-                                        <div className="font-bold text-purple-700">{c.name}</div>
-                                        <div className="text-xs text-gray-500">{c.desc}</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button 
-                                onClick={onPurchase}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-lg transform transition active:scale-95"
-                            >
-                                予想を購入する
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- Main Component ---
-
-        const App = () => {
-            // Load initial state from localStorage or default
-            const [wallet, setWallet] = useState(() => {
-                const saved = localStorage.getItem('g1dream_wallet');
-                return saved !== null ? parseInt(saved) : 100000;
-            });
-            const [raceCount, setRaceCount] = useState(() => {
-                const saved = localStorage.getItem('g1dream_raceCount');
-                return saved !== null ? parseInt(saved) : 1;
-            });
-            const [resultLog, setResultLog] = useState(() => {
-                const saved = localStorage.getItem('g1dream_resultLog');
-                return saved !== null ? JSON.parse(saved) : [];
-            });
+        // ============================================================================================
+        //  MODE: NORMAL (GIドリーム)
+        // ============================================================================================
+        const NormalMode = ({ wallet, setWallet, raceCount, setRaceCount, resultLog, setResultLog, onOpenSwitch }) => {
+            const RACE_TOTAL_DISTANCE = 2142; 
+            const HORSE_NAMES_PREFIX = ["ブラック", "サイレンス", "ディープ", "スペシャル", "ゴールド", "メジロ", "トウカイ", "ナリタ", "オグリ", "ミスター", "キング", "サクラ", "ダイワ", "ウオッカ", "シンボリ", "エア", "アグネス", "マンハッタン", "フジ", "グラス", "エル", "マヤノ", "ビワ", "ライス"];
+            const HORSE_NAMES_SUFFIX = ["インパクト", "スズカ", "ウィーク", "シップ", "マックイーン", "テイオー", "ブライアン", "キャップ", "シービー", "ヘイロー", "バクシン", "スカーレット", "ルドルフ", "グルーヴ", "デジタル", "カフェ", "キセキ", "ワンダー", "コンドル", "トップガン"];
+            const JOCKEYS = [{ name: "武 豊", weight: 10, rank: "S" }, { name: "ルメール", weight: 10, rank: "S" }, { name: "川田", weight: 9, rank: "A" }, { name: "デムーロ", weight: 9, rank: "A" }, { name: "横山", weight: 8, rank: "A" }, { name: "戸崎", weight: 8, rank: "A" }, { name: "福永", weight: 8, rank: "A" }, { name: "池添", weight: 8, rank: "A" }, { name: "岩田", weight: 7, rank: "B" }, { name: "松山", weight: 7, rank: "B" }, { name: "坂井", weight: 7, rank: "B" }, { name: "和田", weight: 6, rank: "C" }, { name: "浜中", weight: 6, rank: "C" }, { name: "三浦", weight: 5, rank: "C" }, { name: "幸", weight: 5, rank: "C" }, { name: "藤田", weight: 4, rank: "D" }, { name: "新人", weight: 3, rank: "D" }];
+            const RUNNING_STYLES = [{ id: 0, name: "逃げ", label: "逃", desc: "序盤から先頭に立つ" }, { id: 1, name: "先行", label: "先", desc: "好位につけて抜け出す" }, { id: 2, name: "差し", label: "差", desc: "中団から末脚を伸ばす" }, { id: 3, name: "追込", label: "追", desc: "後方から一気にごぼう抜き" }];
+            const BET_TYPES = { WIN: { id: 'WIN', name: '単勝', count: 1, desc: '1着になる馬を当てます' }, PLACE: { id: 'PLACE', name: '複勝', count: 1, desc: '3着以内に入る馬を当てます' }, QUINELLA: { id: 'QUINELLA', name: '馬連', count: 2, desc: '1着と2着になる馬の組み合わせを当てます（順不同）' }, WIDE: { id: 'WIDE', name: 'ワイド', count: 2, desc: '3着以内に入る馬のうち、2頭の組み合わせを当てます（順不同）' }, EXACTA: { id: 'EXACTA', name: '馬単', count: 2, desc: '1着と2着になる馬を、着順通りに当てます' }, TRIO: { id: 'TRIO', name: '3連複', count: 3, desc: '1着、2着、3着になる馬の組み合わせを当てます（順不同）' }, TRIFECTA: { id: 'TRIFECTA', name: '3連単', count: 3, desc: '1着、2着、3着になる馬を、着順通りに当てます' }};
+            const TIPSTER_COURSES = { SOLID: { id: 'SOLID', name: '堅実コース', desc: '的中率重視！コツコツ稼ぎたいあなたに。', type: 'PLACE' }, BALANCE: { id: 'BALANCE', name: 'バランスコース', desc: '回収率重視。馬連でしっかり利益を！', type: 'QUINELLA' }, DREAM: { id: 'DREAM', name: '一攫千金コース', desc: '夢の万馬券！穴馬を絡めた3連単勝負！', type: 'TRIFECTA' }};
 
             const [phase, setPhase] = useState('betting'); 
             const [horses, setHorses] = useState([]);
-            
-            // Betting State
-            const [betType, setBetType] = useState(BET_TYPES.WIN.id);
+            const [betType, setBetType] = useState('WIN');
             const [selectedHorses, setSelectedHorses] = useState([null, null, null]); 
             const [betAmount, setBetAmount] = useState(1000); 
             const [betSlip, setBetSlip] = useState([]); 
-            
-            // Race State
             const [raceProgress, setRaceProgress] = useState([]); 
             const [raceTime, setRaceTime] = useState(0);
             const [raceRanking, setRaceRanking] = useState([]); 
             const [finalResult, setFinalResult] = useState(null);
             const [commentary, setCommentary] = useState("パドック周回中...");
-            
             const [showHistory, setShowHistory] = useState(false); 
-            
-            // Tooltip State
             const [hoveredHorse, setHoveredHorse] = useState(null);
-
-            // Tipster State
             const [showTipster, setShowTipster] = useState(false);
             const [tipsterBudget, setTipsterBudget] = useState(1000);
             const [tipsterCourse, setTipsterCourse] = useState('SOLID');
-
             const animationRef = useRef(null);
 
-            // Save to localStorage whenever state changes
-            useEffect(() => {
-                localStorage.setItem('g1dream_wallet', wallet);
-                localStorage.setItem('g1dream_raceCount', raceCount);
-                localStorage.setItem('g1dream_resultLog', JSON.stringify(resultLog));
-            }, [wallet, raceCount, resultLog]);
-
-            // Reset Function
-            const resetGame = () => {
-                if (confirm("データを初期化して最初から遊びますか？\n（所持金、戦績がすべてリセットされます）")) {
-                    localStorage.removeItem('g1dream_wallet');
-                    localStorage.removeItem('g1dream_raceCount');
-                    localStorage.removeItem('g1dream_resultLog');
-                    window.location.reload();
-                }
-            };
-
-            // Unified Bet Type Change Handler
-            const handleBetTypeChange = (newType) => {
-                setBetType(newType);
-                setSelectedHorses([null, null, null]);
-            };
-
-            // --- Game Logic ---
-
-            const setupRace = () => {
-                const numHorses = 8; 
-                const newHorses = [];
-                let totalPopularityScore = 0;
-
-                const usedNames = new Set();
-                const usedJockeys = new Set(); 
-                let strengthPool = [];
-                
-                // 1. Generate Capability (USING INDEX-B LOGIC: COMPETITIVE)
-                const racePattern = Math.random();
-                let patternName = "";
-
-                if (racePattern < 0.3) {
-                    patternName = "1強";
-                    strengthPool.push(95 + Math.random() * 10); 
-                    // Competitive weak horses (Index B)
-                    for(let k=0; k<7; k++) strengthPool.push(65 + Math.random() * 25); 
-                } else if (racePattern < 0.6) {
-                    patternName = "2強";
-                    strengthPool.push(90 + Math.random() * 8);
-                    strengthPool.push(90 + Math.random() * 8);
-                    for(let k=0; k<6; k++) strengthPool.push(65 + Math.random() * 25);
-                } else if (racePattern < 0.8) {
-                    patternName = "3強";
-                    for(let k=0; k<3; k++) strengthPool.push(85 + Math.random() * 10);
-                    for(let k=0; k<5; k++) strengthPool.push(65 + Math.random() * 25);
-                } else {
-                    patternName = "混戦";
-                    const baseStrength = 60 + Math.random() * 10;
-                    for(let k=0; k<8; k++) strengthPool.push(baseStrength + (Math.random() - 0.5) * 20); 
-                }
-                strengthPool.sort(() => Math.random() - 0.5);
-
-                for (let i = 0; i < numHorses; i++) {
-                    const strength = Math.max(20, Math.min(120, strengthPool[i]));
-
-                    // Name
-                    let name = generateHorseName();
-                    let attempts = 0;
-                    while(usedNames.has(name) && attempts < 20) { name = generateHorseName(); attempts++; }
-                    usedNames.add(name);
-
-                    // Jockey
-                    let jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
-                    attempts = 0;
-                    while(usedJockeys.has(jockey.name) && attempts < 50) {
-                        jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
-                        attempts++;
-                    }
-                    usedJockeys.add(jockey.name);
-
-                    // Condition
-                    const condition = (Math.random() * 0.6) - 0.3;
-
-                    // Past Result
-                    const perfBase = 120 - strength + (Math.random() * 30 - 15); 
-                    let prevRank = 1;
-                    if (perfBase < 30) prevRank = 1;
-                    else if (perfBase < 40) prevRank = 2;
-                    else if (perfBase < 50) prevRank = 3;
-                    else if (perfBase < 60) prevRank = 4;
-                    else if (perfBase < 80) prevRank = Math.floor(Math.random()*2)+5; 
-                    else prevRank = Math.floor(Math.random()*2)+7; 
-                    if(prevRank > 8) prevRank = 8;
-
-                    // Weight
-                    const baseWeight = 460 + Math.floor(Math.random() * 80);
-                    const weightDiff = Math.floor(Math.random() * 16) - 8; 
-                    const currentWeight = baseWeight + weightDiff;
-
-                    newHorses.push({
-                        id: i,
-                        number: i + 1,
-                        name: name,
-                        jockey: jockey.name,
-                        jockeyWeight: jockey.weight, 
-                        jockeyRank: jockey.rank,
-                        strength: strength,
-                        stamina: Math.random() * 0.4 + 0.8,
-                        style: RUNNING_STYLES[Math.floor(Math.random() * RUNNING_STYLES.length)],
-                        condition: condition,
-                        prevRank: prevRank,
-                        weight: currentWeight,
-                        weightDiff: weightDiff,
-                        odds: 0 
-                    });
-                }
-
-                // 2. Calculate Odds
-                newHorses.forEach(h => {
-                    let rankScore = 0;
-                    if (h.prevRank === 1) rankScore = 100;
-                    else if (h.prevRank === 2) rankScore = 80;
-                    else if (h.prevRank === 3) rankScore = 60;
-                    else if (h.prevRank <= 5) rankScore = 40;
-                    else rankScore = 20;
-
-                    const jockeyScore = h.jockeyWeight * 3; 
-                    const hype = (h.strength * 0.4) + (h.condition * 20) + (Math.random() * 10);
-
-                    h.popularity = rankScore + jockeyScore + hype;
-                    h.popularity = Math.pow(h.popularity, 2.5); 
-                    
-                    totalPopularityScore += h.popularity;
-                });
-
-                newHorses.forEach(horse => {
-                    const prob = horse.popularity / totalPopularityScore;
-                    let rawOdds = (1 / prob) * 0.8; 
-                    if (rawOdds < 1.1) rawOdds = 1.1;
-                    if (rawOdds > 300.0) rawOdds = 300.0 + (Math.random() * 200); 
-                    horse.odds = parseFloat(rawOdds.toFixed(1));
-                });
-
-                setHorses(newHorses);
-                setBetSlip([]);
-                setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, lane: h.id, rank: null, status: 'normal' })));
-                setFinalResult(null);
-                setPhase('betting');
-                setCommentary(`第${raceCount}レース (${patternName})、投票受付中！`);
-                setSelectedHorses([null, null, null]);
-            };
-
-            useEffect(() => setupRace(), []);
-
-            // --- Tipster Functionality (Index B) ---
-
-            const purchaseTipsterPrediction = () => {
-                if (tipsterBudget > wallet && wallet >= 100) {
-                    alert("所持金が不足していますが、借金をして購入しますか？");
-                } else if (tipsterBudget <= 0) {
-                    alert("予算を入力してください。");
-                    return;
-                }
-
-                // Calculate Tipster Scores
-                const scoredHorses = horses.map(h => ({
-                    ...h,
-                    tipsterScore: (h.strength * 0.4) + (h.condition * 50) + (h.jockeyWeight * 2)
-                })).sort((a, b) => b.tipsterScore - a.tipsterScore);
-
-                let betTypeToUse = '';
-                let selection = [];
-
-                if (tipsterCourse === 'SOLID') {
-                    betTypeToUse = 'PLACE';
-                    selection = [scoredHorses[0]];
-                } else if (tipsterCourse === 'BALANCE') {
-                    betTypeToUse = 'QUINELLA';
-                    selection = [scoredHorses[0], scoredHorses[1]];
-                } else if (tipsterCourse === 'DREAM') {
-                    const darkHorses = horses.filter(h => h.odds >= 10.0).sort((a, b) => b.condition - a.condition);
-                    const darkHorse = darkHorses.length > 0 ? darkHorses[0] : scoredHorses[2];
-                    
-                    const picks = [scoredHorses[0], scoredHorses[1]];
-                    if (picks.some(p => p.id === darkHorse.id)) {
-                         selection = [scoredHorses[0], scoredHorses[1], scoredHorses[2]];
-                    } else {
-                         selection = [scoredHorses[0], scoredHorses[1], darkHorse];
-                    }
-                    betTypeToUse = 'TRIFECTA';
-                }
-
-                const odds = calculateComboOdds(betTypeToUse, selection.map(s => s.id), horses);
-
-                const newBet = {
-                    id: Date.now(),
-                    type: betTypeToUse,
-                    typeName: BET_TYPES[betTypeToUse].name,
-                    selection: selection,
-                    amount: parseInt(tipsterBudget),
-                    odds: odds,
-                    isTipster: true 
-                };
-
-                setBetSlip(prev => [...prev, newBet]);
-                setShowTipster(false);
-                alert("予想を購入しました！投票リストを確認してください。");
-            };
-
-            // --- Betting Handlers ---
-
-            const addToSlip = () => {
-                const required = BET_TYPES[betType].count;
-                const selection = selectedHorses.slice(0, required);
-                
-                if (selection.includes(null)) {
-                    alert("馬を選択してください");
-                    return;
-                }
-                const uniqueSelection = new Set(selection);
-                if (uniqueSelection.size !== selection.length) {
-                    alert("同じ馬を重複して選択できません");
-                    return;
-                }
-                if (betAmount <= 0) return;
-
-                const currentOdds = calculateComboOdds(betType, selection.map(i => horses[i].id), horses);
-
-                const newBet = {
-                    id: Date.now(),
-                    type: betType,
-                    typeName: BET_TYPES[betType].name,
-                    selection: selection.map(idx => horses[idx]), 
-                    amount: parseInt(betAmount),
-                    odds: currentOdds,
-                    isTipster: false
-                };
-
-                setBetSlip([...betSlip, newBet]);
-            };
-
-            const removeBet = (id) => {
-                setBetSlip(betSlip.filter(b => b.id !== id));
-            };
-
-            const getTotalBetAmount = () => betSlip.reduce((sum, b) => sum + b.amount, 0);
-
-            const startRace = () => {
-                const total = getTotalBetAmount();
-                if (total === 0) {
-                    if(!confirm("賭け金なしで観戦しますか？")) return;
-                }
-                
-                if (total > wallet) {
-                    if (!confirm(`資金が足りません！\n残高: ${wallet.toLocaleString()}円\n賭け金: ${total.toLocaleString()}円\n\n借金して賭けますか？`)) {
-                        return;
-                    }
-                }
-
-                setWallet(prev => prev - total);
-                setPhase('fanfare'); 
-                setCommentary("まもなく発走です...");
-                
-                setTimeout(() => setCommentary("ファンファーレが鳴り響きます！"), 300);
-                setTimeout(() => setCommentary("各馬ゲートイン完了..."), 1800);
-                setTimeout(() => {
-                    setPhase('racing');
-                    setCommentary("スタートしました！");
-                    runRace();
-                }, 2500);
-            };
-
-            // --- Race Simulation (HYBRID: Index C) ---
-
-            const runRace = () => {
-                let currentProgress = horses.map(h => ({ 
-                    id: h.id, 
-                    dist: 0, 
-                    speed: 0,
-                    fatigue: 0,
-                    rank: null,
-                    status: 'normal', 
-                    // Base speed calculation
-                    maxSpeed: (h.strength / 100) + 0.8 
-                }));
-                
-                const TOTAL_DISTANCE = RACE_TOTAL_DISTANCE; 
-                let time = 0;
-                let nextRank = 1;
-                let finishedOrder = [];
-
-                currentProgress = currentProgress.map(p => {
-                    const horse = horses.find(h => h.id === p.id);
-                    // Slightly decreased late start chance for realism
-                    const lateStartChance = (10 - horse.jockeyWeight) * 0.008;
-                    if (Math.random() < lateStartChance) {
-                        p.status = 'late_start';
-                    }
-                    return p;
-                });
-
-                setRaceProgress(currentProgress); 
-
-                const loop = () => {
-                    time += 0.1; 
-                    let anyoneFinished = false;
-
-                    currentProgress = currentProgress.map(p => {
-                        if (p.rank !== null) return p;
-
-                        const horse = horses.find(h => h.id === p.id);
-                        const progressPct = p.dist / TOTAL_DISTANCE;
-
-                        let targetSpeed = p.maxSpeed;
-                        
-                        // [HYBRID] Use Index-A's lower volatility for stability
-                        // 0.3 means speed won't fluctuate wildly every frame
-                        const randomFactor = (Math.random() - 0.5) * 0.3; 
-
-                        let conditionMod = horse.condition * 0.3;
-                        if (horse.weightDiff > 0) {
-                            conditionMod -= horse.weightDiff * 0.005; 
-                        }
-                        targetSpeed *= (1 + conditionMod);
-
-                        // Jockey skill reduces fatigue accumulation
-                        const fatigueRate = 0.02 * (1.0 - (horse.jockeyWeight * 0.02));
-
-                        // Status Effects
-                        if (p.status === 'late_start') {
-                            targetSpeed *= 0.5; 
-                            // Recovery based on jockey skill
-                            if (progressPct > 0.05 + (Math.random() * 0.05)) p.status = 'normal'; 
-                        }
-
-                        // Kakari (Over-eager) Check
-                        if (progressPct > 0.2 && progressPct < 0.7 && p.status === 'normal') {
-                            const kakariChance = (10 - horse.jockeyWeight) * 0.0005; 
-                            if (Math.random() < kakariChance) {
-                                p.status = 'kakari';
-                            }
-                        }
-                        
-                        if (p.status === 'kakari') {
-                            targetSpeed *= 1.15; // Running too fast
-                            p.fatigue += (p.speed * fatigueRate * 3.5); // Severe fatigue penalty
-                            if (Math.random() < 0.03) p.status = 'normal';
-                        } else {
-                            p.fatigue += (p.speed * fatigueRate);
-                        }
-
-                        // Pace & Style Logic
-                        if (progressPct < 0.15) { // Start
-                            if (horse.style.id === 0) targetSpeed *= 1.2; 
-                            else if (horse.style.id === 3) targetSpeed *= 0.8; 
-                        } else if (progressPct < 0.6) { // Middle
-                            if (horse.style.id === 0) targetSpeed *= 0.95; 
-                            else if (horse.style.id === 3) targetSpeed *= 0.9; 
-                            else targetSpeed *= 0.9; 
-                            
-                            // Occasional "breather" or "spur"
-                            if (Math.random() < 0.005) targetSpeed *= 1.1; 
-                        } else if (progressPct < 0.85) { // Spurt Prep
-                             if (horse.style.id === 1) targetSpeed *= 1.1; 
-                             if (horse.style.id === 2) targetSpeed *= 1.2; 
-                        } else { // Final Straight
-                             if (horse.style.id === 3) targetSpeed *= 1.5; 
-                             else if (horse.style.id === 0) targetSpeed *= 0.8; 
-                             else targetSpeed *= 1.0; 
-                             
-                             // [REALISM] Stamina Limit Logic
-                             // Instead of random 0.5 speed, we apply a consistent penalty if fatigued
-                             const staminaLimit = horse.strength * horse.stamina * 0.9;
-                             
-                             if (p.fatigue > staminaLimit) {
-                                 // The horse is out of stamina.
-                                 // Calculate how much over the limit
-                                 const over = p.fatigue - staminaLimit;
-                                 // Decelerate based on how exhausted they are
-                                 const penalty = Math.min(0.4, over * 0.05);
-                                 targetSpeed *= (1.0 - penalty);
-                                 p.status = 'tired'; // Visual cue possibility
-                             }
-                        }
-
-                        const accel = (targetSpeed - p.speed) * 0.02; 
-                        p.speed += accel + randomFactor;
-                        
-                        if(p.speed < 0.2) p.speed = 0.2; 
-                        p.dist += p.speed;
-                        
-                        if (p.dist >= TOTAL_DISTANCE) {
-                            p.dist = TOTAL_DISTANCE; 
-                            p.rank = nextRank; 
-                            nextRank++;
-                            finishedOrder.push(horse);
-                            anyoneFinished = true;
-                        }
-
-                        return p;
-                    });
-
-                    const sorted = [...currentProgress].sort((a, b) => {
-                        if (a.rank !== null && b.rank !== null) return a.rank - b.rank;
-                        if (a.rank !== null) return -1;
-                        if (b.rank !== null) return 1;
-                        return b.dist - a.dist;
-                    });
-                    
-                    setRaceRanking(sorted.map(p => {
-                        const h = horses.find(h => h.id === p.id);
-                        return { ...h, rank: p.rank };
-                    }));
-                    setRaceProgress([...currentProgress]);
-                    setRaceTime(time);
-
-                    if (Math.floor(time * 10) % 50 === 0) { 
-                        const leader = sorted[0];
-                        const leaderHorse = horses.find(h => h.id === leader.id);
-                        const pct = leader.dist / TOTAL_DISTANCE;
-                        
-                        const tiredHorse = currentProgress.find(p => p.status === 'tired');
-                        const kakariHorse = currentProgress.find(p => p.status === 'kakari');
-
-                        let newCommentary = "";
-
-                        if (pct < 0.15) {
-                            const badStart = currentProgress.find(p => p.status === 'late_start');
-                            if (badStart) {
-                                const h = horses.find(x => x.id === badStart.id);
-                                newCommentary = `おっと！${h.name}、出遅れました。`;
-                            } else {
-                                newCommentary = `各馬、きれいなスタートを切りました。`;
-                            }
-                        } else if (pct < 0.4) {
-                             if (kakariHorse) {
-                                const h = horses.find(x => x.id === kakariHorse.id);
-                                newCommentary = `${h.name}、行きたがっています！騎手が必死に抑える！`;
-                            } else {
-                                newCommentary = `${leaderHorse.name}がレースを引っ張る！`;
-                            }
-                        } else if (pct < 0.6) {
-                            newCommentary = `レースは中盤、${leaderHorse.name}が先頭をキープ。`;
-                        } else if (pct < 0.85) {
-                             newCommentary = `第4コーナー！後続が押し寄せてくる！`;
-                        } else if (pct < 0.95) {
-                             if (tiredHorse && tiredHorse.id === leader.id) {
-                                 newCommentary = `${leaderHorse.name}、足色が鈍った！後続が襲いかかる！`;
-                             } else {
-                                 newCommentary = `${leaderHorse.name}、先頭だ！押し切れるか！？`;
-                             }
-                        } else {
-                             if (!finalResult) newCommentary = `ゴールまであと少し！`;
-                        }
-                        
-                        setCommentary(newCommentary);
-                    }
-
-                    if (nextRank > horses.length) {
-                        setFinalResult(finishedOrder);
-                        setPhase('result');
-                        processResults(finishedOrder);
-                        cancelAnimationFrame(animationRef.current);
-                    } else {
-                        animationRef.current = requestAnimationFrame(loop);
-                    }
-                };
-                animationRef.current = requestAnimationFrame(loop);
-            };
-
-            const processResults = (order) => {
-                setCommentary(`1着 ${order[0].name}！ ゴールイン！`);
-                let totalPayout = 0;
-
-                betSlip.forEach(bet => {
-                    if (checkWin(bet, order)) {
-                        totalPayout += Math.floor(bet.amount * bet.odds);
-                    }
-                });
-
-                setWallet(prev => prev + totalPayout);
-                setResultLog(prev => [{
-                    race: raceCount,
-                    winner: order[0].name,
-                    betTotal: getTotalBetAmount(),
-                    payout: totalPayout
-                }, ...prev]);
-            };
-
-            const nextRace = () => {
-                setRaceCount(p => p + 1);
-                setupRace();
-            };
-
-            // --- Components ---
-            
-            const FanfareView = () => (
-                <div className="flex flex-col items-center justify-center h-64 bg-black/80 rounded-xl border-4 border-yellow-500 animate-in fade-in zoom-in duration-500">
-                    <div className="text-yellow-400 text-6xl mb-4 animate-bounce">🎺</div>
-                    <h2 className="text-4xl font-black text-white tracking-widest animate-pulse">G1 FANFARE</h2>
-                    <p className="text-gray-300 mt-4 text-sm">まもなくゲートが開きます...</p>
-                </div>
-            );
-
-            const RaceTrack = ({ horses, progress }) => {
-                const getPos = (totalDistRun, laneIdx) => {
-                    const trackL = 600;
-                    const trackR = 150;
-                    const perimeter = trackL * 2 + Math.PI * trackR * 2; 
-                    const GOAL_D_POS = 600; 
-                    
-                    const distMod = RACE_TOTAL_DISTANCE % perimeter;
-                    let startOffset = GOAL_D_POS - distMod;
-                    if (startOffset < 0) startOffset += perimeter;
-                    
-                    let d = (totalDistRun + startOffset) % perimeter;
-
-                    const laneOffset = (laneIdx - 3.5) * 12; 
-                    const r = trackR + laneOffset;
-
-                    let x, y;
-
-                    if (d < 600) {
-                        const p = d / 600;
-                        x = 200 + (600 * p);
-                        y = 50 - laneOffset;
-                    }
-                    else if (d < 600 + Math.PI * trackR) {
-                        const arcLen = d - 600;
-                        const angle = (arcLen / (Math.PI * trackR)) * Math.PI;
-                        const theta = 0.5 * Math.PI - angle;
-                        x = 800 + r * Math.cos(theta);
-                        y = 200 - r * Math.sin(theta);
-                    }
-                    else if (d < 600 + Math.PI * trackR + 600) {
-                        const strLen = d - (600 + Math.PI * trackR);
-                        x = 800 - strLen;
-                        y = 350 + laneOffset;
-                    }
-                    else {
-                        const arcLen = d - (1200 + Math.PI * trackR);
-                        const angle = (arcLen / (Math.PI * trackR)) * Math.PI;
-                        const theta = 1.5 * Math.PI - angle; 
-                        x = 200 + r * Math.cos(theta);
-                        y = 200 - r * Math.sin(theta); 
-                    }
-
-                    return { x, y };
-                };
-
-                return (
-                    <div className="relative w-full aspect-[2/1] bg-green-800 rounded-xl overflow-hidden shadow-inner border-4 border-yellow-700">
-                        <div className="absolute inset-0 grass-pattern opacity-50"></div>
-                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet">
-                            <path d="M 200 50 L 800 50 A 150 150 0 1 1 800 350 L 200 350 A 150 150 0 1 1 200 50 Z" fill="none" stroke="#eab308" strokeWidth="120" strokeOpacity="0.2" />
-                            <path d="M 200 50 L 800 50 A 150 150 0 1 1 800 350 L 200 350 A 150 150 0 1 1 200 50 Z" fill="none" stroke="white" strokeWidth="2" strokeDasharray="20,20" />
-                            <line x1="800" y1="10" x2="800" y2="90" stroke="white" strokeWidth="8" />
-                            <text x="810" y="80" fill="white" fontSize="20" fontWeight="bold">GOAL</text>
-                            <text x="810" y="40" fill="white" fontSize="16" opacity="0.7">START</text>
-                        </svg>
-                        {horses.map(horse => {
-                            const p = progress.find(pr => pr.id === horse.id);
-                            if(!p) return null;
-                            const pos = getPos(p.dist, horse.id);
-                            
-                            let statusEffect = "";
-                            if (p.status === 'late_start') statusEffect = "opacity-50"; 
-                            if (p.status === 'kakari') statusEffect = "animate-pulse brightness-150"; 
-                            // [REALISM] Visual cue for tired horses
-                            if (p.status === 'tired') statusEffect = "grayscale";
-
-                            return (
-                                <div
-                                    key={horse.id}
-                                    className={`absolute transition-transform duration-100 will-change-transform flex justify-center items-center ${statusEffect}`}
-                                    style={{
-                                        left: `${pos.x / 10}%`, 
-                                        top: `${pos.y / 4}%`,
-                                        width: '4%', 
-                                        height: '10%',
-                                        transform: `translate(-50%, -50%)`,
-                                        zIndex: Math.floor(p.dist)
-                                    }}
-                                >
-                                    <div className="relative flex flex-col items-center">
-                                        <div className={`text-2xl filter drop-shadow-md ${phase === 'racing' ? 'horse-gallop' : ''}`}>🐴</div>
-                                        <div 
-                                            className="text-[8px] text-white px-1 rounded whitespace-nowrap -mt-1 font-bold"
-                                            style={{ backgroundColor: ['white', 'black', '#e53935', '#1e88e5', '#fdd835', '#43a047', '#fb8c00', '#f48fb1'][horse.id % 8], color: horse.id % 8 ===0 || horse.id % 8 === 4 || horse.id % 8 === 7 ?'black':'white', border: horse.id===0?'1px solid #ccc':'none' }}
-                                        >
-                                            {horse.number}.{horse.name}
-                                        </div>
-                                        {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded">遅</div>}
-                                        {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded">掛</div>}
-                                        {p.status === 'tired' && <div className="absolute -top-4 text-xs font-bold text-blue-300 bg-black px-1 rounded">バテ</div>}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                );
-            };
-
-            const HorseSelectionRow = ({ index, label }) => (
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="w-16 font-bold text-gray-700 text-sm">{label}</span>
-                    <select 
-                        className="flex-1 p-2 bg-white border border-gray-300 rounded text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={selectedHorses[index] === null ? "" : selectedHorses[index]}
-                        onChange={(e) => {
-                            const val = e.target.value === "" ? null : parseInt(e.target.value);
-                            const newSel = [...selectedHorses];
-                            newSel[index] = val;
-                            setSelectedHorses(newSel);
-                        }}
-                    >
-                        <option value="">選択...</option>
-                        {horses.map((h, i) => (
-                            <option key={h.id} value={i} disabled={selectedHorses.includes(i) && selectedHorses[index] !== i}>
-                                {h.number}. {h.name} (単{h.odds}) - {h.jockey}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-            );
-
-            // *** BETTING TICKET (Index B) ***
+            // --- Betting Ticket Component (Normal Mode) ---
             const BettingTicket = ({ bet, onDelete, isResult, hit, readOnly }) => (
                 <div className={`bg-white border-2 ${isResult ? (hit ? 'border-red-500' : 'border-gray-400') : (bet.isTipster ? 'border-purple-600' : 'border-green-700')} rounded shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}>
                     <div className={`${isResult ? (hit ? 'bg-red-500' : 'bg-gray-500') : (bet.isTipster ? 'bg-purple-600' : 'bg-green-700')} text-white text-xs px-2 py-1 flex justify-between items-center`}>
@@ -935,7 +161,7 @@
                         <span>{new Date(bet.id).toLocaleTimeString()} 発券</span>
                     </div>
                     
-                    <div className="p-3 text-gray-800 ticket-pattern relative">
+                    <div className="p-3 text-gray-800 ticket-pattern-normal relative">
                         <div className="flex justify-between items-end border-b-2 border-dashed border-gray-300 pb-2 mb-2">
                             <div>
                                 <div className="text-xs text-gray-500 font-bold mb-1">{bet.typeName}</div>
@@ -953,7 +179,7 @@
                             <div className="text-sm font-bold">
                                 {bet.amount.toLocaleString()}円
                             </div>
-                            {!isResult && !readOnly && ( // Check readOnly here
+                            {!isResult && !readOnly && ( 
                                 <button 
                                     onClick={() => onDelete(bet.id)}
                                     className="text-gray-400 hover:text-red-500 transition-colors p-1"
@@ -988,59 +214,220 @@
                 </div>
             );
 
+            const calculateComboOdds = (type, horseIndices, horses) => {
+                if (!horseIndices.every(idx => idx !== null && idx !== undefined)) return 0;
+                const probs = horseIndices.map(idx => 1 / horses[idx].odds); 
+                let jointProb = 1;
+                if (type === 'WIN') jointProb = probs[0];
+                else if (type === 'PLACE') jointProb = probs[0] * 3.0;
+                else if (type === 'QUINELLA') jointProb = probs[0] * probs[1] * 2.5; 
+                else if (type === 'WIDE') jointProb = probs[0] * probs[1] * 4.5; 
+                else if (type === 'EXACTA') jointProb = probs[0] * probs[1] * 1.2;
+                else if (type === 'TRIO') jointProb = probs[0] * probs[1] * probs[2] * 7.0; 
+                else if (type === 'TRIFECTA') jointProb = probs[0] * probs[1] * probs[2] * 1.5; 
+                let odds = (1 / jointProb) * 0.75; 
+                if (type !== 'WIN' && odds < 1.1) odds = 1.1;
+                if (type === 'PLACE' && odds < 1.0) odds = 1.0; 
+                return Math.min(99999.9, Math.max(1.0, parseFloat(odds.toFixed(1))));
+            };
+            
+            const checkWin = (bet, finishOrder) => {
+                if (!finishOrder || finishOrder.length < 3) return false;
+                const ids = bet.selection.map(h => h.id);
+                const r1 = finishOrder[0].id; const r2 = finishOrder[1].id; const r3 = finishOrder[2].id;
+                if (bet.type === 'WIN') return ids[0] === r1;
+                else if (bet.type === 'PLACE') return ids[0] === r1 || ids[0] === r2 || ids[0] === r3;
+                else if (bet.type === 'QUINELLA') { const top2 = [r1, r2]; return top2.includes(ids[0]) && top2.includes(ids[1]); }
+                else if (bet.type === 'WIDE') { const top3 = [r1, r2, r3]; return top3.includes(ids[0]) && top3.includes(ids[1]); }
+                else if (bet.type === 'EXACTA') return ids[0] === r1 && ids[1] === r2;
+                else if (bet.type === 'TRIO') { const top3 = [r1, r2, r3].sort().join(','); const sel = [...ids].sort().join(','); return top3 === sel; }
+                else if (bet.type === 'TRIFECTA') return ids[0] === r1 && ids[1] === r2 && ids[2] === r3;
+                return false;
+            };
+
+            const setupRace = () => {
+                const numHorses = 8; const newHorses = []; let totalPopularityScore = 0; const usedNames = new Set(); const usedJockeys = new Set(); let strengthPool = [];
+                const racePattern = Math.random(); let patternName = "";
+                if (racePattern < 0.3) { patternName = "1強"; strengthPool.push(95 + Math.random() * 10); for(let k=0; k<7; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else if (racePattern < 0.6) { patternName = "2強"; strengthPool.push(90 + Math.random() * 8); strengthPool.push(90 + Math.random() * 8); for(let k=0; k<6; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else if (racePattern < 0.8) { patternName = "3強"; for(let k=0; k<3; k++) strengthPool.push(85 + Math.random() * 10); for(let k=0; k<5; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else { patternName = "混戦"; const baseStrength = 60 + Math.random() * 10; for(let k=0; k<8; k++) strengthPool.push(baseStrength + (Math.random() - 0.5) * 20); }
+                strengthPool.sort(() => Math.random() - 0.5);
+
+                for (let i = 0; i < numHorses; i++) {
+                    const strength = Math.max(20, Math.min(120, strengthPool[i]));
+                    let name = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)] + HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)];
+                    while(usedNames.has(name)) { name = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)] + HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)]; }
+                    usedNames.add(name);
+                    let jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
+                    while(usedJockeys.has(jockey.name)) { jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)]; }
+                    usedJockeys.add(jockey.name);
+                    const perfBase = 120 - strength + (Math.random() * 30 - 15); 
+                    let prevRank = perfBase < 30 ? 1 : perfBase < 40 ? 2 : perfBase < 50 ? 3 : perfBase < 60 ? 4 : perfBase < 80 ? Math.floor(Math.random()*2)+5 : Math.floor(Math.random()*2)+7; if(prevRank > 8) prevRank = 8;
+                    const baseWeight = 460 + Math.floor(Math.random() * 80); const weightDiff = Math.floor(Math.random() * 16) - 8;
+                    newHorses.push({ id: i, number: i + 1, name: name, jockey: jockey.name, jockeyWeight: jockey.weight, jockeyRank: jockey.rank, strength: strength, stamina: Math.random() * 0.4 + 0.8, style: RUNNING_STYLES[Math.floor(Math.random() * RUNNING_STYLES.length)], condition: (Math.random() * 0.6) - 0.3, prevRank: prevRank, weight: baseWeight + weightDiff, weightDiff: weightDiff, odds: 0 });
+                }
+                newHorses.forEach(h => {
+                    let rankScore = h.prevRank === 1 ? 100 : h.prevRank === 2 ? 80 : h.prevRank === 3 ? 60 : h.prevRank <= 5 ? 40 : 20;
+                    h.popularity = Math.pow(rankScore + (h.jockeyWeight * 3) + ((h.strength * 0.4) + (h.condition * 20) + (Math.random() * 10)), 2.5);
+                    totalPopularityScore += h.popularity;
+                });
+                newHorses.forEach(horse => {
+                    let rawOdds = (1 / (horse.popularity / totalPopularityScore)) * 0.8; 
+                    if (rawOdds < 1.1) rawOdds = 1.1; if (rawOdds > 300.0) rawOdds = 300.0 + (Math.random() * 200); 
+                    horse.odds = parseFloat(rawOdds.toFixed(1));
+                });
+
+                // ★調整: 大穴チャンス (確率8%, 強化量マイルド化)
+                if (Math.random() < 0.08) { 
+                    const darkHorses = newHorses.filter(h => h.odds >= 15.0);
+                    if (darkHorses.length > 0) {
+                        const buffedHorse = darkHorses[Math.floor(Math.random() * darkHorses.length)];
+                        // オッズはそのまま、能力と調子を強化
+                        buffedHorse.condition = 0.3; // 絶好調の手前くらい
+                        buffedHorse.strength += 8;   // 能力強化も控えめに
+                    }
+                }
+
+                setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, lane: h.id, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
+                setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}レース (${patternName})、投票受付中！`); setSelectedHorses([null, null, null]);
+            };
+            useEffect(() => setupRace(), [raceCount]); // Only when raceCount changes or mount
+
+            const purchaseTipster = () => {
+                if (tipsterBudget > wallet && wallet >= 100) alert("所持金が不足していますが、借金をして購入しますか？");
+                else if (tipsterBudget <= 0) { alert("予算を入力してください。"); return; }
+                
+                // Calculate Tipster Scores with MORE Randomness (Nerf)
+                const scoredHorses = horses.map(h => ({
+                    ...h,
+                    // ★調整: 予想屋のスコア計算のランダム係数を 60 -> 30 に半減 (±15点)
+                    tipsterScore: (h.strength * 0.4) + (h.condition * 50) + (h.jockeyWeight * 2) + ((Math.random() - 0.5) * 30)
+                })).sort((a, b) => b.tipsterScore - a.tipsterScore);
+
+                let type='', sel=[];
+                if (tipsterCourse === 'SOLID') { type = 'PLACE'; sel = [scoredHorses[0]]; } 
+                else if (tipsterCourse === 'BALANCE') { type = 'QUINELLA'; sel = [scoredHorses[0], scoredHorses[1]]; } 
+                else if (tipsterCourse === 'DREAM') { 
+                    const darkHorses = horses.filter(h => h.odds >= 10.0).sort((a, b) => b.condition - a.condition);
+                    const dark = darkHorses.length > 0 ? darkHorses[0] : scoredHorses[2];
+                    sel = [scoredHorses[0], scoredHorses[1]];
+                    if (sel.some(p => p.id === dark.id)) sel.push(scoredHorses[2]); else sel.push(dark);
+                    type = 'TRIFECTA'; 
+                }
+                const newBet = { id: Date.now(), type, typeName: BET_TYPES[type].name, selection: sel, amount: parseInt(tipsterBudget), odds: calculateComboOdds(type, sel.map(s => s.id), horses), isTipster: true };
+                setBetSlip(prev => [...prev, newBet]); setShowTipster(false); alert("予想を購入しました！投票リストを確認してください。");
+            };
+            const addToSlip = () => {
+                const req = BET_TYPES[betType].count; const sel = selectedHorses.slice(0, req);
+                if (sel.includes(null)) { alert("馬を選択してください"); return; }
+                if (new Set(sel).size !== sel.length) { alert("同じ馬を重複して選択できません"); return; }
+                if (betAmount <= 0) return;
+                const newBet = { id: Date.now(), type: betType, typeName: BET_TYPES[betType].name, selection: sel.map(idx => horses[idx]), amount: parseInt(betAmount), odds: calculateComboOdds(betType, sel.map(i => horses[i].id), horses), isTipster: false };
+                setBetSlip([...betSlip, newBet]);
+            };
+            const startRace = () => {
+                const total = betSlip.reduce((s, b) => s + b.amount, 0);
+                if (total === 0 && !confirm("賭け金なしで観戦しますか？")) return;
+                if (total > wallet && !confirm(`資金が足りません！\n残高: ${wallet.toLocaleString()}円\n賭け金: ${total.toLocaleString()}円\n\n借金して賭けますか？`)) return;
+                setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなく発走です...");
+                setTimeout(() => setCommentary("ファンファーレが鳴り響きます！"), 300); setTimeout(() => setCommentary("各馬ゲートイン完了..."), 1800);
+                setTimeout(() => { setPhase('racing'); setCommentary("スタートしました！"); runRace(); }, 2500);
+            };
+            const runRace = () => {
+                let currentProgress = horses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
+                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - horses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
+                setRaceProgress(currentProgress);
+                let time = 0, nextRank = 1, finishedOrder = [];
+                const loop = () => {
+                    time += 0.1;
+                    currentProgress = currentProgress.map(p => {
+                        if (p.rank !== null) return p;
+                        const horse = horses.find(h => h.id === p.id);
+                        let targetSpeed = p.maxSpeed * (1 + (horse.condition * 0.3) - (horse.weightDiff > 0 ? horse.weightDiff * 0.005 : 0));
+                        const pct = p.dist / RACE_TOTAL_DISTANCE;
+                        if (p.status === 'late_start') { targetSpeed *= 0.5; if (pct > 0.05 + Math.random() * 0.05) p.status = 'normal'; }
+                        if (pct > 0.2 && pct < 0.7 && p.status === 'normal' && Math.random() < (10 - horse.jockeyWeight) * 0.0005) p.status = 'kakari';
+                        if (p.status === 'kakari') { targetSpeed *= 1.15; p.fatigue += p.speed * 0.07; if (Math.random() < 0.03) p.status = 'normal'; } else p.fatigue += p.speed * 0.02 * (1.0 - horse.jockeyWeight * 0.02);
+                        if (pct < 0.15) { if (horse.style.id === 0) targetSpeed *= 1.2; else if (horse.style.id === 3) targetSpeed *= 0.8; } 
+                        else if (pct < 0.6) { targetSpeed *= 0.9; if (Math.random() < 0.005) targetSpeed *= 1.1; } 
+                        else if (pct < 0.85) { if (horse.style.id === 1) targetSpeed *= 1.1; if (horse.style.id === 2) targetSpeed *= 1.2; } 
+                        else { if (horse.style.id === 3) targetSpeed *= 1.5; else if (horse.style.id === 0) targetSpeed *= 0.8; else targetSpeed *= 1.0; 
+                            if (p.fatigue > horse.strength * horse.stamina * 0.9) { targetSpeed *= (1.0 - Math.min(0.4, (p.fatigue - horse.strength * horse.stamina * 0.9) * 0.05)); p.status = 'tired'; }
+                        }
+                        p.speed += ((targetSpeed - p.speed) * 0.02) + (Math.random() - 0.5) * 0.3; if(p.speed < 0.2) p.speed = 0.2;
+                        p.dist += p.speed;
+                        if (p.dist >= RACE_TOTAL_DISTANCE) { p.dist = RACE_TOTAL_DISTANCE; p.rank = nextRank++; finishedOrder.push(horse); }
+                        return p;
+                    });
+                    const sorted = [...currentProgress].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.dist - a.dist);
+                    setRaceRanking(sorted.map(p => ({ ...horses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
+                    if (Math.floor(time * 10) % 50 === 0) {
+                        const leader = sorted[0], pct = leader.dist / RACE_TOTAL_DISTANCE;
+                        if (pct < 0.15) setCommentary(currentProgress.some(p=>p.status==='late_start') ? `おっと！出遅れが発生。` : `各馬、きれいなスタートを切りました。`);
+                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${horses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${horses[leader.id].name}がレースを引っ張る！`);
+                        else if (pct < 0.6) setCommentary(`レースは中盤、${horses[leader.id].name}が先頭をキープ。`);
+                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${horses[leader.id].name}、足色が鈍った！` : `${horses[leader.id].name}、先頭だ！押し切れるか！？`);
+                        else if (!finalResult) setCommentary(`ゴールまであと少し！`);
+                    }
+                    if (nextRank > horses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
+                };
+                animationRef.current = requestAnimationFrame(loop);
+            };
+            const processResults = (order) => {
+                setCommentary(`1着 ${order[0].name}！ ゴールイン！`); let totalPayout = 0;
+                betSlip.forEach(bet => { if (checkWin(bet, order)) totalPayout += Math.floor(bet.amount * bet.odds); });
+                setWallet(prev => prev + totalPayout);
+                setResultLog(prev => [{ race: raceCount, winner: order[0].name, betTotal: betSlip.reduce((s, b) => s + b.amount, 0), payout: totalPayout }, ...prev]);
+            };
+
+            const handleBetTypeChange = (newType) => {
+                setBetType(newType);
+                setSelectedHorses([null, null, null]);
+            };
+
             return (
-                <div className="min-h-screen bg-green-900 pb-24">
-                    {/* Header */}
+                <div className="min-h-screen pb-24 font-sans text-white">
                     <header className="bg-gray-900 text-white p-3 sticky top-0 z-20 shadow-lg border-b-4 border-yellow-600 flex justify-between items-center">
-                        <div className="flex items-center gap-2" onClick={resetGame} style={{ cursor: 'pointer' }}>
+                        <div className="flex items-center gap-2" onClick={phase === 'racing' ? null : resetGame} style={{ cursor: phase === 'racing' ? 'not-allowed' : 'pointer', opacity: phase === 'racing' ? 0.5 : 1 }}>
                             <Trophy className="text-yellow-400" size={24} />
                             <div>
-                                <h1 className="font-bold text-lg leading-tight">G1 ドリーム</h1>
+                                <h1 className="font-bold text-lg leading-tight flex items-center gap-2">
+                                    GI ドリーム
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); if(phase !== 'racing') onOpenSwitch(); }} 
+                                        className={`bg-gray-700 hover:bg-gray-600 p-1 rounded-full transition-colors ${phase === 'racing' ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                                        title="モード切替"
+                                    >🦄</button>
+                                </h1>
                                 <span className="text-xs text-gray-400">RACE {raceCount}</span>
                             </div>
                         </div>
-                        
-                        <div 
-                            className="relative group cursor-pointer"
-                            onMouseEnter={() => setShowHistory(true)}
-                            onMouseLeave={() => setShowHistory(false)}
-                        >
+                        <div className="relative group cursor-pointer" onMouseEnter={() => setShowHistory(true)} onMouseLeave={() => setShowHistory(false)}>
                             <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-colors ${wallet < 0 ? 'bg-red-900 animate-pulse' : 'bg-gray-800'}`}>
                                 <Coins className={wallet < 0 ? 'text-red-400' : 'text-yellow-400'} size={16} />
-                                <span className={`font-mono font-bold text-lg ${wallet < 0 ? 'text-red-400' : ''}`}>
-                                    {wallet.toLocaleString()}
-                                </span>
-                                {wallet < 0 && <span className="text-xs bg-red-600 px-1 rounded text-white">借金中</span>}
+                                <span className={`font-mono font-bold text-lg ${wallet < 0 ? 'text-red-400' : ''}`}>{wallet.toLocaleString()}</span>
+                                {/* --- 借金中表示の復元 --- */}
+                                {wallet < 0 && <span className="text-xs bg-red-600 px-1 rounded text-white ml-1">借金中</span>}
                             </div>
-
-                            {/* History Tooltip */}
                             {showHistory && (
-                                <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                    <h4 className="text-xs text-gray-400 font-bold mb-2 flex items-center gap-1">
-                                        <Info size={12} /> 収支履歴 (直近10件)
-                                    </h4>
+                                <div className="absolute right-0 top-full mt-2 w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-2xl p-3 z-50">
+                                    <h4 className="text-xs text-gray-400 font-bold mb-2 flex items-center gap-1"><Info size={12} /> 収支履歴 (直近10件)</h4>
                                     <div className="max-h-60 overflow-y-auto history-scroll space-y-2">
-                                        {resultLog.length === 0 ? (
-                                            <div className="text-xs text-gray-600 text-center py-4">履歴なし</div>
-                                        ) : (
-                                            resultLog.slice(0, 10).map((log, idx) => {
-                                                const balance = log.payout - log.betTotal;
-                                                return (
-                                                    <div key={idx} className="bg-gray-800 p-2 rounded text-xs border border-gray-700">
-                                                        <div className="flex justify-between mb-1">
-                                                            <span className="text-yellow-500">RACE {log.race}</span>
-                                                            <span className="text-gray-400">{log.winner}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-end">
-                                                            <span className="text-gray-500">¥{log.betTotal} → ¥{log.payout}</span>
-                                                            <span className={`font-bold ${balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                                {balance > 0 ? '+' : ''}{balance.toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
+                                        {resultLog.length === 0 ? <div className="text-xs text-gray-600 text-center py-4">履歴なし</div> : resultLog.slice(0, 10).map((log, i) => (
+                                            <div key={i} className="bg-gray-800 p-2 rounded text-xs border border-gray-700">
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-yellow-500">RACE {log.race}</span>
+                                                    <span className="text-gray-400">{log.winner}</span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <span className="text-gray-500">¥{log.betTotal} → ¥{log.payout}</span>
+                                                    <span className={`font-bold ${log.payout-log.betTotal >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                        {log.payout-log.betTotal > 0 ? '+' : ''}{(log.payout-log.betTotal).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                     <div className="mt-2 pt-2 border-t border-gray-700 text-right text-xs">
                                         <div className="text-gray-400">Total Profit</div>
@@ -1054,56 +441,27 @@
                     </header>
 
                     <main className="max-w-3xl mx-auto p-3 space-y-4">
-                        
-                        {/* Paddock / Info Panel */}
                         {phase === 'betting' && (
-                            <div className="bg-white rounded-xl overflow-hidden shadow-xl relative">
+                            <div className="bg-white rounded-xl overflow-hidden shadow-xl text-gray-800 relative">
                                 <div className="bg-green-800 text-white p-2 font-bold text-center text-sm">出走表</div>
                                 <div className="divide-y divide-gray-200">
                                     <div className="grid grid-cols-12 text-xs text-gray-500 bg-gray-50 p-2 font-bold text-center">
-                                        <div className="col-span-1">枠</div>
-                                        <div className="col-span-3 text-left pl-2">馬名</div>
-                                        <div className="col-span-2">騎手(ランク)</div>
-                                        <div className="col-span-2">脚質</div>
-                                        <div className="col-span-2">馬体重(増減)</div>
-                                        <div className="col-span-2">単オッズ</div>
+                                        <div className="col-span-1">枠</div><div className="col-span-3 text-left pl-2">馬名</div><div className="col-span-2">騎手</div><div className="col-span-2">脚質</div><div className="col-span-2">体重</div><div className="col-span-2">オッズ</div>
                                     </div>
-                                    {horses.map(horse => (
-                                        <div 
-                                            key={horse.id} 
-                                            className="grid grid-cols-12 items-center p-2 text-sm hover:bg-yellow-50 relative group"
-                                            onMouseEnter={() => setHoveredHorse(horse)}
-                                            onMouseLeave={() => setHoveredHorse(null)}
-                                        >
-                                            <div className="col-span-1 flex justify-center">
-                                                <span 
-                                                    className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs"
-                                                    style={{ backgroundColor: ['white', 'black', '#e53935', '#1e88e5', '#fdd835', '#43a047', '#fb8c00', '#f48fb1'][horse.id % 8], color: horse.id % 8 ===0 || horse.id % 8 === 4 || horse.id % 8 === 7 ?'black':'white', border: horse.id===0?'1px solid #ccc':'none' }}
-                                                >
-                                                    {horse.number}
-                                                </span>
-                                            </div>
-                                            <div className="col-span-3 pl-2 font-bold text-gray-800 truncate">{horse.name}</div>
-                                            <div className="col-span-2 text-center text-xs text-gray-600 truncate">
-                                                {horse.jockey} <span className="text-[10px] bg-gray-200 px-1 rounded">{horse.jockeyRank}</span>
-                                            </div>
-                                            <div className="col-span-2 text-center text-xs text-gray-500">
-                                                <span className="px-1 bg-gray-200 rounded">{horse.style.label}</span>
-                                            </div>
-                                            <div className="col-span-2 text-center text-xs">
-                                                {horse.weight}kg <span className={horse.weightDiff > 0 ? "text-red-500 font-bold" : horse.weightDiff < 0 ? "text-blue-500" : "text-gray-400"}>
-                                                    ({horse.weightDiff > 0 ? '+' : ''}{horse.weightDiff})
-                                                </span>
-                                            </div>
-                                            <div className="col-span-2 text-right font-mono font-bold text-red-600 pr-2">{horse.odds}</div>
+                                    {horses.map(h => (
+                                        <div key={h.id} className="grid grid-cols-12 items-center p-2 text-sm hover:bg-yellow-50 relative group" onMouseEnter={() => setHoveredHorse(h)} onMouseLeave={() => setHoveredHorse(null)}>
+                                            <div className="col-span-1 flex justify-center"><span className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs" style={{ backgroundColor: ['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][h.id%8], color: [0,4,7].includes(h.id%8)?'black':'white', border: h.id===0?'1px solid #ccc':'none' }}>{h.number}</span></div>
+                                            <div className="col-span-3 pl-2 font-bold text-gray-800 truncate">{h.name}</div>
+                                            <div className="col-span-2 text-center text-xs">{h.jockey} <span className="text-[10px] bg-gray-200 px-1 rounded">{h.jockeyRank}</span></div>
+                                            <div className="col-span-2 text-center text-xs"><span className="px-1 bg-gray-200 rounded">{h.style.label}</span></div>
+                                            <div className="col-span-2 text-center text-xs">{h.weight} <span className={h.weightDiff>0?'text-red-500':h.weightDiff<0?'text-blue-500':'text-gray-400'}>({h.weightDiff>0?'+':''}{h.weightDiff})</span></div>
+                                            <div className="col-span-2 text-right font-bold text-red-600 pr-2">{h.odds}</div>
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* Horse Info Tooltip */}
                                 {hoveredHorse && (
                                     <div 
-                                        className="absolute z-50 bg-black/90 text-white p-3 rounded-lg shadow-2xl text-xs pointer-events-none w-48 border border-white/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-100"
+                                        className="fixed z-50 bg-black/90 text-white p-3 rounded-lg shadow-2xl text-xs pointer-events-none w-48 border border-white/20 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-100"
                                         style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                                     >
                                         <div className="font-bold text-yellow-400 text-sm mb-2 border-b border-white/20 pb-1">{hoveredHorse.name}</div>
@@ -1126,104 +484,63 @@
                                         </div>
                                     </div>
                                 )}
-                            </div>
-                        )}
-
-                        {/* Betting Interface */}
-                        {phase === 'betting' && (
-                            <div className="bg-white rounded-xl shadow-xl overflow-hidden">
-                                
-                                {/* Mobile View: Dropdown */}
-                                <div className="block md:hidden bg-gray-100 border-b p-2">
-                                     <select 
-                                        className="w-full p-3 bg-white border border-gray-300 rounded font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={betType}
-                                        onChange={(e) => handleBetTypeChange(e.target.value)}
-                                    >
-                                        {Object.values(BET_TYPES).map(type => (
-                                            <option key={type.id} value={type.id}>
-                                                {type.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Desktop View: Buttons */}
-                                <div className="hidden md:flex bg-gray-100 border-b flex-wrap">
-                                    {Object.values(BET_TYPES).map(type => (
-                                        <button 
-                                            key={type.id}
-                                            onClick={() => handleBetTypeChange(type.id)}
-                                            className={`flex-1 py-3 text-sm font-bold transition-colors min-w-[80px] ${betType === type.id ? 'bg-blue-600 text-white shadow-inner' : 'text-gray-600 hover:bg-gray-200'}`}
+                            
+                                <div className="p-4 bg-blue-50 border-t border-gray-200">
+                                    {/* Responsive Bet Type Selection (Restored) */}
+                                    <div className="block md:hidden bg-gray-100 border-b p-2 mb-4">
+                                         <select 
+                                            className="w-full p-3 bg-white border border-gray-300 rounded font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={betType}
+                                            onChange={(e) => handleBetTypeChange(e.target.value)}
                                         >
-                                            {type.name}
-                                        </button>
-                                    ))}
-                                </div>
-                                
-                                <div className="p-4 bg-blue-50">
+                                            {Object.values(BET_TYPES).map(type => (
+                                                <option key={type.id} value={type.id}>
+                                                    {type.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="hidden md:flex bg-gray-100 border-b mb-4 overflow-x-auto">
+                                        {Object.values(BET_TYPES).map(t => <button key={t.id} onClick={() => { setBetType(t.id); setSelectedHorses([null,null,null]); }} className={`flex-1 py-2 px-4 text-xs font-bold whitespace-nowrap ${betType===t.id?'bg-blue-600 text-white':'text-gray-600 hover:bg-gray-200'}`}>{t.name}</button>)}
+                                    </div>
+
                                     <div className="bg-blue-100 text-blue-800 text-sm p-2 rounded mb-4 border border-blue-200 flex items-center gap-2">
                                         <Info size={16} />
                                         <span>{BET_TYPES[betType].desc}</span>
                                     </div>
 
-                                    <div className="mb-4">
-                                        <HorseSelectionRow index={0} label={betType === 'WIDE' || betType === 'TRIO' || betType === 'QUINELLA' || betType === 'PLACE' ? "1頭目" : "1着予想"} />
-                                        {BET_TYPES[betType].count >= 2 && (
-                                            <HorseSelectionRow index={1} label={betType === 'WIDE' || betType === 'TRIO' || betType === 'QUINELLA' ? "2頭目" : "2着予想"} />
-                                        )}
-                                        {BET_TYPES[betType].count >= 3 && (
-                                            <HorseSelectionRow index={2} label={betType === 'TRIO' ? "3頭目" : "3着予想"} />
-                                        )}
+                                    <div className="mb-4 space-y-2">
+                                        {[...Array(BET_TYPES[betType].count)].map((_, i) => (
+                                            <div key={i} className="flex items-center gap-2"><span className="text-xs font-bold w-12">{i===0?'1頭目':i===1?'2頭目':'3頭目'}</span>
+                                                <select className="flex-1 p-2 border rounded text-sm" value={selectedHorses[i]??''} onChange={e=> {const n=[...selectedHorses]; n[i]=e.target.value===''?null:parseInt(e.target.value); setSelectedHorses(n);}}>
+                                                    <option value="">選択</option>{horses.map((h, idx) => <option key={h.id} value={idx} disabled={selectedHorses.includes(idx) && selectedHorses[i]!==idx}>{h.number}.{h.name} ({h.odds})</option>)}
+                                                </select>
+                                            </div>
+                                        ))}
                                     </div>
-
-                                    <div className="flex justify-between items-end bg-white p-3 rounded-lg border border-blue-200">
-                                        <div>
-                                            <div className="text-xs text-gray-500 mb-1">現在のオッズ</div>
-                                            <div className="text-3xl font-bold font-mono text-red-600">
-                                                {calculateComboOdds(betType, selectedHorses.slice(0, BET_TYPES[betType].count).map(i => i !== null ? horses[i]?.id : undefined), horses) || "---"}
-                                                <span className="text-sm text-gray-400 ml-1">倍</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-sm font-bold text-gray-700">金額</span>
-                                                <input 
-                                                    type="number" step="100" min="100"
-                                                    className="w-24 p-1 border border-gray-400 bg-white text-gray-900 rounded text-right font-mono font-bold focus:outline-none focus:border-blue-500"
-                                                    value={betAmount}
-                                                    onChange={e => setBetAmount(e.target.value)}
-                                                />
-                                            </div>
-                                            <button 
-                                                onClick={addToSlip}
-                                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg text-sm shadow"
-                                            >
-                                                + 投票リストに追加
-                                            </button>
-                                        </div>
+                                    <div className="flex justify-between items-center bg-white p-3 rounded border">
+                                        <div className="text-2xl font-bold text-red-600 font-mono">{calculateComboOdds(betType, selectedHorses.slice(0, BET_TYPES[betType].count).map(i=>i!==null?horses[i]?.id:undefined), horses) || "---"} <span className="text-xs text-gray-500">倍</span></div>
+                                        <div className="flex items-center gap-2"><input type="number" step="100" className="w-20 p-1 border rounded text-right font-bold" value={betAmount} onChange={e=>setBetAmount(e.target.value)} /><button onClick={addToSlip} className="bg-orange-500 text-white font-bold py-1 px-4 rounded text-sm">+追加</button></div>
                                     </div>
                                 </div>
 
-                                {/* Bet Slip */}
+                                {/* Bet Slip List (Betting Phase) */}
                                 {betSlip.length > 0 && (
-                                    <div className="bg-gray-800 p-4">
-                                        <h3 className="text-sm font-bold text-gray-400 mb-3 flex items-center gap-2">
+                                    <div className="bg-gray-800 p-4 text-white">
+                                        <h3 className="text-sm font-bold mb-2 flex items-center gap-2">
                                             <Ticket size={16} /> 投票済みチケット
                                         </h3>
                                         <div className="space-y-2 mb-4">
-                                            {betSlip.map(bet => (
-                                                <BettingTicket key={bet.id} bet={bet} onDelete={removeBet} />
+                                            {betSlip.map(b => (
+                                                <BettingTicket key={b.id} bet={b} onDelete={() => {}} isResult={false} hit={null} readOnly={true} />
                                             ))}
                                         </div>
-                                        <div className="flex justify-between items-center pt-2 border-t border-gray-600 text-white">
-                                            <div className="text-lg">合計: <span className="font-bold text-yellow-400">{getTotalBetAmount().toLocaleString()}円</span></div>
-                                            <button 
-                                                onClick={startRace}
-                                                className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-full shadow-lg flex items-center gap-2 animate-pulse"
-                                            >
+                                        <div className="mt-4 flex justify-between items-center border-t border-gray-600 pt-2">
+                                            <span className="font-bold">合計: {betSlip.reduce((s,b)=>s+b.amount,0).toLocaleString()}円</span>
+                                            {/* --- アイコン追加 --- */}
+                                            <button onClick={startRace} className="bg-red-600 px-6 py-2 rounded-full font-bold animate-pulse hover:bg-red-500 flex items-center gap-2">
                                                 <TrendingUp size={20} />
-                                                レース開始
+                                                投票して開始
                                             </button>
                                         </div>
                                     </div>
@@ -1231,36 +548,67 @@
                             </div>
                         )}
 
-                        {/* Tipster Modal (Index B) */}
-                        {phase === 'betting' && <TipsterModal isOpen={showTipster} onClose={() => setShowTipster(false)} onPurchase={purchaseTipsterPrediction} wallet={wallet} budget={tipsterBudget} setBudget={setTipsterBudget} course={tipsterCourse} setCourse={setTipsterCourse} />}
-
-                        {/* Tipster Floating Button */}
-                        {phase === 'betting' && (
-                            <button 
-                                onClick={() => setShowTipster(true)}
-                                className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-2xl border-4 border-white animate-bounce z-50 flex items-center justify-center"
-                                style={{ width: '64px', height: '64px' }}
-                            >
-                                <span className="text-3xl">🧙‍♂️</span>
-                            </button>
-                        )}
-
-                        {/* Fanfare View */}
-                        {phase === 'fanfare' && (
-                            <div className="flex items-center justify-center h-64">
-                                <FanfareView />
+                        {showTipster && phase === 'betting' && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                                <div className="bg-white rounded-xl w-full max-w-sm overflow-hidden text-gray-800">
+                                    <div className="bg-purple-600 text-white p-3 flex justify-between items-center font-bold"><span>予想屋</span><button onClick={()=>setShowTipster(false)}>&times;</button></div>
+                                    <div className="p-4 space-y-4">
+                                        <div><label className="text-xs font-bold">予算</label><input type="number" className="w-full border p-2 rounded" value={tipsterBudget} onChange={e=>setTipsterBudget(e.target.value)} /></div>
+                                        <div className="space-y-2">{Object.values(TIPSTER_COURSES).map(c=><div key={c.id} onClick={()=>setTipsterCourse(c.id)} className={`p-2 border rounded cursor-pointer text-xs ${tipsterCourse===c.id?'bg-purple-50 border-purple-500':''}`}><div className="font-bold">{c.name}</div><div>{c.desc}</div></div>)}</div>
+                                        <button onClick={purchaseTipster} className="w-full bg-purple-600 text-white font-bold py-2 rounded">購入</button>
+                                    </div>
+                                </div>
                             </div>
                         )}
+                        {phase === 'betting' && <button onClick={()=>setShowTipster(true)} className="fixed bottom-6 right-6 bg-purple-600 text-white p-4 rounded-full shadow-2xl z-40 text-2xl animate-bounce">🧙‍♂️</button>}
 
-                        {/* Race View */}
+                        {phase === 'fanfare' && <div className="flex flex-col items-center justify-center h-64 bg-black/80 rounded-xl border-4 border-yellow-500 animate-in fade-in zoom-in duration-500"><div className="text-yellow-400 text-6xl mb-4 animate-bounce">🎺</div><h2 className="text-4xl font-black text-white tracking-widest animate-pulse">G1 FANFARE</h2><p className="text-gray-300 mt-4 text-sm">まもなくゲートが開きます...</p></div>}
+
                         {phase === 'racing' && (
-                            <div className="space-y-4 animate-in fade-in duration-700">
-                                <div className="bg-black text-yellow-400 font-bold text-center py-2 rounded-t-xl border-x-4 border-t-4 border-yellow-700 text-xl tracking-wider">
-                                    {commentary}
+                            <div className="space-y-4">
+                                <div className="bg-black text-yellow-400 font-bold text-center py-2 rounded-t-xl border-x-4 border-t-4 border-yellow-700 text-xl tracking-wider">{commentary}</div>
+                                <div className="relative w-full aspect-[2/1] bg-green-800 rounded-xl overflow-hidden shadow-inner border-4 border-yellow-700">
+                                    <div className="absolute inset-0 grass-pattern-normal opacity-50"></div>
+                                    {/* --- START/GOAL 表示の復元 & 縦幅拡張(viewBox変更) --- */}
+                                    {/* ★修正: viewBoxは高さ500のままで、描画位置を全体的に+50して中央寄せ */}
+                                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+                                        <path d="M 200 100 L 800 100 A 150 150 0 1 1 800 400 L 200 400 A 150 150 0 1 1 200 100 Z" fill="none" stroke="#eab308" strokeWidth="120" strokeOpacity="0.2" />
+                                        <path d="M 200 100 L 800 100 A 150 150 0 1 1 800 400 L 200 400 A 150 150 0 1 1 200 100 Z" fill="none" stroke="white" strokeWidth="2" strokeDasharray="20,20" />
+                                        <line x1="800" y1="60" x2="800" y2="140" stroke="white" strokeWidth="8" />
+                                        <text x="810" y="130" fill="white" fontSize="20" fontWeight="bold">GOAL</text>
+                                        <text x="810" y="90" fill="white" fontSize="16" opacity="0.7">START</text>
+                                    </svg>
+                                    {horses.map(h => {
+                                        const p = raceProgress.find(pr => pr.id === h.id); if(!p) return null;
+                                        const getPos = (d, l) => { 
+                                            // ★修正: Y座標計算を全体的に+50シフト
+                                            const trackL=600, trackR=150, perim=trackL*2+Math.PI*trackR*2, startOff=600-(2142%perim); let dist=(d+(startOff<0?startOff+perim:startOff))%perim;
+                                            const r=trackR+(l-3.5)*12; 
+                                            if(dist<600) return {x:200+(600*(dist/600)), y:100-(l-3.5)*12}; // 50 -> 100
+                                            if(dist<600+Math.PI*trackR) {const th=0.5*Math.PI-((dist-600)/(Math.PI*trackR))*Math.PI; return {x:800+r*Math.cos(th), y:250-r*Math.sin(th)};} // 200 -> 250
+                                            if(dist<1200+Math.PI*trackR) return {x:800-(dist-(600+Math.PI*trackR)), y:400+(l-3.5)*12}; // 350 -> 400
+                                            const th=1.5*Math.PI-((dist-(1200+Math.PI*trackR))/(Math.PI*trackR))*Math.PI; return {x:200+r*Math.cos(th), y:250-r*Math.sin(th)}; // 200 -> 250
+                                        };
+                                        const pos = getPos(p.dist, h.id);
+
+                                        // --- 状態異常エフェクトの復元 ---
+                                        let statusEffect = "";
+                                        if (p.status === 'late_start') statusEffect = "opacity-50"; 
+                                        if (p.status === 'kakari') statusEffect = "animate-pulse brightness-150"; 
+                                        if (p.status === 'tired') statusEffect = "grayscale";
+
+                                        // 描画位置調整: height 500 に合わせて /5 に変更
+                                        return <div key={h.id} className={`absolute flex flex-col items-center justify-center transition-transform duration-100 will-change-transform ${statusEffect}`} style={{left:`${pos.x/10}%`, top:`${pos.y/5}%`, width:'4%', height:'10%', transform:'translate(-50%,-50%)', zIndex:Math.floor(p.dist)}}>
+                                            <div className="text-2xl filter drop-shadow-md horse-gallop">🐴</div>
+                                            <div className="text-[8px] px-1 rounded -mt-1 font-bold whitespace-nowrap" style={{backgroundColor:['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][h.id%8], color:[0,4,7].includes(h.id%8)?'black':'white'}}>{h.number}.{h.name}</div>
+                                            
+                                            {/* --- 状態異常バッジの復元 --- */}
+                                            {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded border border-red-500">遅</div>}
+                                            {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded border border-yellow-400">掛</div>}
+                                            {p.status === 'tired' && <div className="absolute -top-4 text-xs font-bold text-blue-300 bg-black px-1 rounded border border-blue-300">バテ</div>}
+                                        </div>
+                                    })}
                                 </div>
-                                <RaceTrack horses={horses} progress={raceProgress} />
-                                
-                                {/* Live Ranking */}
                                 <div className="bg-black/80 text-white p-3 rounded-b-xl backdrop-blur">
                                     <div className="flex items-center gap-2 text-xs overflow-x-auto pb-1">
                                         <span className="bg-red-600 px-2 rounded font-bold whitespace-nowrap">先頭</span>
@@ -1274,7 +622,7 @@
                                     </div>
                                 </div>
 
-                                {/* Betting Tickets Display */}
+                                {/* Bets during race (Restored) */}
                                 {betSlip.length > 0 && (
                                     <div className="mt-4">
                                         <h3 className="text-white font-bold mb-2 flex items-center gap-2 text-sm px-2">
@@ -1290,7 +638,6 @@
                             </div>
                         )}
 
-                        {/* Result Modal */}
                         {phase === 'result' && finalResult && (
                             <div className="bg-white text-gray-900 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-4 border-yellow-400">
                                 <div className="bg-yellow-400 p-4 text-center">
@@ -1309,7 +656,7 @@
                                             {finalResult.map((h, i) => (
                                                 <div key={h.id} className={`grid grid-cols-12 items-center text-sm p-1 rounded ${i===0 ? 'bg-yellow-200 font-bold' : i===1?'bg-gray-200':i===2?'bg-orange-100':''}`}>
                                                     <div className="col-span-2 text-center">
-                                                        <span className={`inline-block w-6 h-6 rounded-full leading-6 ${i===0?'bg-yellow-500 text-white':i===1?'bg-gray-400 text-white':i===2?'bg-orange-400 text-white':'text-gray-500'}`}>{i+1}</span>
+                                                        <span className={`inline-block w-6 h-6 rounded-full leading-6 ${i===0?'bg-yellow-500 text-white':i===1?'bg-gray-400 text-white':i===2?'bg-orange-400 text-white':'text-gray-500'}`} style={{ backgroundColor: ['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][i%8], color: [0,4,7].includes(i%8)?'black':'white', border: i===0?'1px solid #ccc':'none' }}>{i+1}</span>
                                                     </div>
                                                     <div className="col-span-5 flex items-center gap-1 pl-1">
                                                         <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center bg-gray-800 text-white font-bold`}>{h.number}</span>
@@ -1321,8 +668,8 @@
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* User's Bets Result */}
+                                
+                                    {/* User Bets Result */}
                                     {betSlip.length > 0 && (
                                         <div className="mb-6">
                                             <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2 text-sm">
@@ -1343,43 +690,710 @@
 
                                     <div className="text-center border-t pt-4">
                                         <div className="text-gray-500 mb-1 text-sm">今回の収支</div>
-                                        {(() => {
-                                            const log = resultLog[0];
-                                            if (!log) return null;
-                                            const balance = log.payout - log.betTotal;
-                                            const isPlus = balance >= 0;
-                                            
-                                            return (
-                                                <div className="mb-6">
-                                                    <div className={`text-4xl font-black font-mono ${isPlus ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {isPlus ? '+' : ''}{balance.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-xs sm:text-sm text-gray-500 font-bold mt-1">
-                                                        (払戻：{log.payout.toLocaleString()}、馬券購入：-{log.betTotal.toLocaleString()})
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
-                                        
-                                        <button 
-                                            onClick={nextRace}
-                                            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-12 rounded-full shadow-lg flex items-center gap-2 mx-auto w-full justify-center sm:w-auto transform transition hover:scale-105"
-                                        >
-                                            <RotateCcw size={20} />
-                                            次のレースへ
-                                        </button>
+                                        <div className={`text-4xl font-black font-mono ${(resultLog[0]?.payout-resultLog[0]?.betTotal)>=0?'text-green-600':'text-red-600'}`}>{((resultLog[0]?.payout-resultLog[0]?.betTotal)>=0?'+':'') + (resultLog[0]?.payout-resultLog[0]?.betTotal).toLocaleString()}</div>
+                                        <div className="text-xs sm:text-sm text-gray-500 font-bold mt-1">
+                                            (払戻：{resultLog[0]?.payout.toLocaleString()}、馬券購入：-{resultLog[0]?.betTotal.toLocaleString()})
+                                        </div>
+                                        <button onClick={() => { setRaceCount(c=>c+1); }} className="mt-4 bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:bg-blue-500 transition-transform hover:scale-105 flex items-center justify-center gap-2 mx-auto"><RotateCcw size={20} /> 次のレースへ</button>
                                     </div>
                                 </div>
                             </div>
                         )}
-                        
                     </main>
                 </div>
             );
         };
 
+
+        // ============================================================================================
+        //  MODE: KIRAKIRA (ゆめかわレースパーク)
+        // ============================================================================================
+        const KirakiraMode = ({ wallet, setWallet, raceCount, setRaceCount, resultLog, setResultLog, onOpenSwitch }) => {
+            const RACE_TOTAL_DISTANCE = 2142;
+            const HORSE_NAMES_PREFIX = ["シュガー", "ドリーミー", "ピンク", "スイート", "ラブリー", "マシュマロ", "ミルキー", "フローラル", "リボン", "キャンディ", "メロディ", "キラキラ", "スター", "ルナ", "ソラ", "ハート", "フェアリー", "プリズム", "ホイップ", "マカロン", "ミント", "ネオン", "ポップ"];
+            const HORSE_NAMES_SUFFIX = ["ユニコーン", "バニー", "キャット", "ドラゴン", "ペガサス", "キティ", "ベア", "エンジェル", "プリンセス", "ドール", "キャンディ", "ドリーム", "ムーン", "サン", "スノー", "スイーツ", "トゥインクル", "マーメイド", "スターライト", "ティアラ"];
+            const JOCKEYS = [{ name: "シュガー☆ライダー", weight: 10, rank: "S" }, { name: "ラブリー・ドロップ", weight: 10, rank: "S" }, { name: "ミルクティー・プリン", weight: 9, rank: "A" }, { name: "キャンディ・ポップ", weight: 9, rank: "A" }, { name: "キラリん", weight: 8, rank: "A" }, { name: "ハートフルうさぎ", weight: 8, rank: "A" }, { name: "フェアリー☆ミント", weight: 8, rank: "A" }, { name: "リボン・スター", weight: 8, rank: "A" }, { name: "マカロン・スカイ", weight: 7, rank: "B" }, { name: "ピーチくまこ", weight: 7, rank: "B" }, { name: "ルナティックねこ", weight: 7, rank: "B" }, { name: "ソーダ・フロート", weight: 6, rank: "C" }, { name: "ポップコーン★ほし", weight: 6, rank: "C" }, { name: "ホイップ・クラウド", weight: 5, rank: "C" }, { name: "チョコチップ", weight: 5, rank: "C" }, { name: "ドリーム☆ひかり", weight: 4, rank: "D" }, { name: "スヤスヤねむり", weight: 3, rank: "D" }];
+            const RUNNING_STYLES = [{ id: 0, name: "きらきらダッシュ", label: "✨先", desc: "はじまりからキラキラ全開で飛び出す" }, { id: 1, name: "ふんわり先頭", label: "♬前", desc: "かわいく前のほうで様子見しながら進む" }, { id: 2, name: "そよ風おいかけ", label: "☁中", desc: "中団からそっと追い上げるスタイル" }, { id: 3, name: "どきどきラストスパート", label: "💫後", desc: "最後にどきどき一気にまくるよ" }];
+            const BET_TYPES = { WIN: { id: 'WIN', name: 'いちばん星チャンス', count: 1, desc: 'いちばんにゴールするゆめ生き物をあてるよ' }, PLACE: { id: 'PLACE', name: 'さんばん星チャンス', count: 1, desc: '上位3着のどこかに入る子をあてる、ちょっとやさしめチャンス' }, QUINELLA: { id: 'QUINELLA', name: 'きらきらペア', count: 2, desc: '1・2着になるなかよしペアを当てる（順不同）' }, WIDE: { id: 'WIDE', name: 'なかよしゴール', count: 2, desc: '3着以内に入るなかよし2人を当てる（順不同・やさしめチャンス）' }, EXACTA: { id: 'EXACTA', name: 'ならんでゴール', count: 2, desc: '1着と2着をならび順までぴったり当てるよ' }, TRIO: { id: 'TRIO', name: 'きらきらトリオ', count: 3, desc: '1〜3着になるトリオを当てる（順不同）' }, TRIFECTA: { id: 'TRIFECTA', name: 'ゆめみるトリプル', count: 3, desc: '1〜3着をならび順までぴったり当てるゆめゆめ券' }};
+            const TIPSTER_COURSES = { SOLID: { id: 'SOLID', name: 'ほっこりコース', desc: '当たりやすさ重視のほわほわコース', type: 'PLACE' }, BALANCE:{ id: 'BALANCE',name: 'きらきらコース', desc: 'ちょうどいいドキドキ感のきらきらコース', type: 'QUINELLA' }, DREAM: { id: 'DREAM', name: 'ゆめみるコース', desc: '一発大きくゆめをつかみたいあなたへ', type: 'TRIFECTA' }};
+
+            const [phase, setPhase] = useState('betting');
+            const [horses, setHorses] = useState([]);
+            const [betType, setBetType] = useState('WIN');
+            const [selectedHorses, setSelectedHorses] = useState([null, null, null]);
+            const [betAmount, setBetAmount] = useState(1000);
+            const [betSlip, setBetSlip] = useState([]);
+            const [raceProgress, setRaceProgress] = useState([]);
+            const [raceTime, setRaceTime] = useState(0);
+            const [raceRanking, setRaceRanking] = useState([]);
+            const [finalResult, setFinalResult] = useState(null);
+            const [commentary, setCommentary] = useState("おともだちがパレードの準備中…");
+            const [showHistory, setShowHistory] = useState(false);
+            const [hoveredHorse, setHoveredHorse] = useState(null);
+            const [showTipster, setShowTipster] = useState(false);
+            const [tipsterBudget, setTipsterBudget] = useState(1000);
+            const [tipsterCourse, setTipsterCourse] = useState('SOLID');
+            const animationRef = useRef(null);
+
+            // --- Betting Ticket Component (Kirakira Mode - Restored) ---
+            const BettingTicket = ({ bet, onDelete, isResult, hit, readOnly }) => (
+                <div
+                    className={`bg-white border-2 ${isResult
+                            ? (hit ? 'border-pink-400' : 'border-gray-300')
+                            : (bet.isTipster ? 'border-purple-300' : 'border-pink-300')}
+                        rounded-xl shadow-md relative overflow-hidden font-mono w-full mb-3 max-w-sm mx-auto transform transition ${!isResult && 'hover:scale-[1.02]'}`}
+                >
+                    <div
+                        className={`${isResult
+                                ? (hit ? 'bg-pink-400' : 'bg-gray-300')
+                                : (bet.isTipster ? 'bg-gradient-to-r from-purple-400 to-pink-400' : 'bg-gradient-to-r from-pink-400 to-rose-400')}
+                            text-white text-xs px-2 py-1 flex justify-between items-center`}
+                    >
+                        <span className="font-bold flex items-center gap-1">
+                            {bet.isTipster ? <Sparkles size={12} /> : <Ticket size={12} />}
+                            {bet.isTipster ? 'ゆめ予想サロン' : 'ゆめかわレースパーク'}
+                        </span>
+                        <span>{new Date(bet.id).toLocaleTimeString()} 発行</span>
+                    </div>
+
+                    <div className="p-3 text-pink-900 ticket-pattern-kirakira relative">
+                        <div className="flex justify-between items-end border-b-2 border-dashed border-pink-200 pb-2 mb-2">
+                            <div>
+                                <div className="text-[10px] text-pink-400 font-bold mb-1">{bet.typeName}</div>
+                                <div className="text-2xl font-black tracking-widest">
+                                    {bet.selection.map(h => h.number).join(bet.type === 'TRIFECTA' ? ' → ' : ' & ')}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xs text-pink-300">きらきら倍率</div>
+                                <div className="text-lg font-bold text-rose-500">{bet.odds}倍</div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <div className="text-sm font-bold">
+                                {bet.amount.toLocaleString()}ジュエル
+                            </div>
+                            {!isResult && !readOnly && (
+                                <button
+                                    onClick={() => onDelete(bet.id)}
+                                    className="text-pink-300 hover:text-rose-400 transition-colors p-1"
+                                    title="このゆめチケをやめる"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
+                            {isResult && (
+                                <div className="text-sm font-bold">
+                                    {hit
+                                        ? <span className="text-pink-500">あたり💖</span>
+                                        : <span className="text-gray-400">はずれ…</span>}
+                                </div>
+                            )}
+                        </div>
+
+                        {isResult && hit && (
+                            <div
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 stamp-hit border-4 font-black text-3xl px-2 select-none pointer-events-none opacity-80">
+                                YUME
+                            </div>
+                        )}
+                        {isResult && !hit && (
+                            <div
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 stamp-miss border-4 font-black text-3xl px-2 select-none pointer-events-none opacity-40">
+                                BOO
+                            </div>
+                        )}
+                        {!isResult && (
+                            <div
+                                className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-4 ${bet.isTipster ? 'border-purple-300/40 text-purple-300/40' : 'border-pink-300/40 text-pink-300/40'} font-black text-3xl rotate-12 px-2 select-none pointer-events-none`}>
+                                {bet.isTipster ? 'PRO' : 'YUME'}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const calculateComboOdds = (type, horseIndices, horses) => {
+                if (!horseIndices.every(idx => idx !== null && idx !== undefined)) return 0;
+                const probs = horseIndices.map(idx => 1 / horses[idx].odds); 
+                let jointProb = 1;
+                if (type === 'WIN') jointProb = probs[0];
+                else if (type === 'PLACE') jointProb = probs[0] * 3.0;
+                else if (type === 'QUINELLA') jointProb = probs[0] * probs[1] * 2.5; 
+                else if (type === 'WIDE') jointProb = probs[0] * probs[1] * 4.5; 
+                else if (type === 'EXACTA') jointProb = probs[0] * probs[1] * 1.2;
+                else if (type === 'TRIO') jointProb = probs[0] * probs[1] * probs[2] * 7.0; 
+                else if (type === 'TRIFECTA') jointProb = probs[0] * probs[1] * probs[2] * 1.5; 
+                let odds = (1 / jointProb) * 0.75; 
+                if (type !== 'WIN' && odds < 1.1) odds = 1.1;
+                if (type === 'PLACE' && odds < 1.0) odds = 1.0; 
+                return Math.min(99999.9, Math.max(1.0, parseFloat(odds.toFixed(1))));
+            };
+            const checkWin = (bet, finishOrder) => {
+                if (!finishOrder || finishOrder.length < 3) return false;
+                const ids = bet.selection.map(h => h.id);
+                const r1 = finishOrder[0].id; const r2 = finishOrder[1].id; const r3 = finishOrder[2].id;
+                if (bet.type === 'WIN') return ids[0] === r1;
+                else if (bet.type === 'PLACE') return ids[0] === r1 || ids[0] === r2 || ids[0] === r3;
+                else if (bet.type === 'QUINELLA') { const top2 = [r1, r2]; return top2.includes(ids[0]) && top2.includes(ids[1]); }
+                else if (bet.type === 'WIDE') { const top3 = [r1, r2, r3]; return top3.includes(ids[0]) && top3.includes(ids[1]); }
+                else if (bet.type === 'EXACTA') return ids[0] === r1 && ids[1] === r2;
+                else if (bet.type === 'TRIO') { const top3 = [r1, r2, r3].sort().join(','); const sel = [...ids].sort().join(','); return top3 === sel; }
+                else if (bet.type === 'TRIFECTA') return ids[0] === r1 && ids[1] === r2 && ids[2] === r3;
+                return false;
+            };
+
+            const setupRace = () => {
+                const numHorses = 8; const newHorses = []; let totalPopularityScore = 0; const usedNames = new Set(); const usedJockeys = new Set(); let strengthPool = [];
+                const racePattern = Math.random(); let patternName = "";
+                if (racePattern < 0.3) { patternName = "とくべつスター"; strengthPool.push(95 + Math.random() * 10); for(let k=0; k<7; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else if (racePattern < 0.6) { patternName = "ダブルスター"; strengthPool.push(90 + Math.random() * 8); strengthPool.push(90 + Math.random() * 8); for(let k=0; k<6; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else if (racePattern < 0.8) { patternName = "トリプルスター"; for(let k=0; k<3; k++) strengthPool.push(85 + Math.random() * 10); for(let k=0; k<5; k++) strengthPool.push(65 + Math.random() * 25); } 
+                else { patternName = "みんな主役"; const baseStrength = 60 + Math.random() * 10; for(let k=0; k<8; k++) strengthPool.push(baseStrength + (Math.random() - 0.5) * 20); }
+                strengthPool.sort(() => Math.random() - 0.5);
+
+                for (let i = 0; i < numHorses; i++) {
+                    const strength = Math.max(20, Math.min(120, strengthPool[i]));
+                    let name = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)] + HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)];
+                    while(usedNames.has(name)) { name = HORSE_NAMES_PREFIX[Math.floor(Math.random() * HORSE_NAMES_PREFIX.length)] + HORSE_NAMES_SUFFIX[Math.floor(Math.random() * HORSE_NAMES_SUFFIX.length)]; }
+                    usedNames.add(name);
+                    let jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)];
+                    while(usedJockeys.has(jockey.name)) { jockey = JOCKEYS[Math.floor(Math.random() * JOCKEYS.length)]; }
+                    usedJockeys.add(jockey.name);
+                    const perfBase = 120 - strength + (Math.random() * 30 - 15); 
+                    let prevRank = perfBase < 30 ? 1 : perfBase < 40 ? 2 : perfBase < 50 ? 3 : perfBase < 60 ? 4 : perfBase < 80 ? Math.floor(Math.random()*2)+5 : Math.floor(Math.random()*2)+7; if(prevRank > 8) prevRank = 8;
+                    const baseWeight = 460 + Math.floor(Math.random() * 80); const weightDiff = Math.floor(Math.random() * 16) - 8;
+                    const r = Math.random(); let avatar = "🦄"; if (r < 0.15) avatar = "🐰"; else if (r < 0.30) avatar = "🐱"; else if (r < 0.45) avatar = "🐻";
+                    newHorses.push({ id: i, number: i + 1, name, avatar, jockey: jockey.name, jockeyWeight: jockey.weight, jockeyRank: jockey.rank, strength, stamina: Math.random() * 0.4 + 0.8, style: RUNNING_STYLES[Math.floor(Math.random() * RUNNING_STYLES.length)], condition: (Math.random() * 0.6) - 0.3, prevRank, weight: baseWeight + weightDiff, weightDiff, odds: 0 });
+                }
+                newHorses.forEach(h => {
+                    let rankScore = h.prevRank === 1 ? 100 : h.prevRank === 2 ? 80 : h.prevRank === 3 ? 60 : h.prevRank <= 5 ? 40 : 20;
+                    h.popularity = Math.pow(rankScore + (h.jockeyWeight * 3) + ((h.strength * 0.4) + (h.condition * 20) + (Math.random() * 10)), 2.5);
+                    totalPopularityScore += h.popularity;
+                });
+                newHorses.forEach(horse => {
+                    let rawOdds = (1 / (horse.popularity / totalPopularityScore)) * 0.8; 
+                    if (rawOdds < 1.1) rawOdds = 1.1; if (rawOdds > 300.0) rawOdds = 300.0 + (Math.random() * 200); 
+                    horse.odds = parseFloat(rawOdds.toFixed(1));
+                });
+
+                // ★調整: ミラクル強化（キラキラモード版大穴チャンス - 確率8%, 強化量マイルド化）
+                if (Math.random() < 0.08) {
+                    const darkHorses = newHorses.filter(h => h.odds >= 15.0);
+                    if (darkHorses.length > 0) {
+                        const buffedHorse = darkHorses[Math.floor(Math.random() * darkHorses.length)];
+                        buffedHorse.condition = 0.3; // 超ハッピーの手前
+                        buffedHorse.strength += 8;   // 強さもアップ
+                    }
+                }
+
+                setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
+                setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}ゆめパレード（${patternName}）きらきら受付中♪`); setSelectedHorses([null, null, null]);
+            };
+            useEffect(() => setupRace(), [raceCount]);
+
+            const purchaseTipster = () => {
+                if (tipsterBudget > wallet && wallet >= 100) alert("ジュエルがちょっと足りないけど、未来のジュエルをあてにしてお願いしちゃう？");
+                else if (tipsterBudget <= 0) { alert("きらきら予算を入力してね。"); return; }
+                
+                // Calculate Tipster Scores with MORE Randomness (Nerf)
+                const scoredHorses = horses.map(h => ({
+                    ...h,
+                    // ★調整: 予想屋のスコア計算のランダム係数を 60 -> 30 に半減 (±15点)
+                    tipsterScore: (h.strength * 0.4) + (h.condition * 50) + (h.jockeyWeight * 2) + ((Math.random() - 0.5) * 30)
+                })).sort((a, b) => b.tipsterScore - a.tipsterScore);
+
+                let type='', sel=[];
+                if (tipsterCourse === 'SOLID') { type = 'PLACE'; sel = [scoredHorses[0]]; } 
+                else if (tipsterCourse === 'BALANCE') { type = 'QUINELLA'; sel = [scoredHorses[0], scoredHorses[1]]; } 
+                else if (tipsterCourse === 'DREAM') { 
+                    const darkHorses = horses.filter(h => h.odds >= 10.0).sort((a, b) => b.condition - a.condition);
+                    const dark = darkHorses.length > 0 ? darkHorses[0] : scoredHorses[2];
+                    sel = [scoredHorses[0], scoredHorses[1]];
+                    if (sel.some(p => p.id === dark.id)) sel.push(scoredHorses[2]); else sel.push(dark);
+                    type = 'TRIFECTA'; 
+                }
+                const newBet = { id: Date.now(), type, typeName: BET_TYPES[type].name, selection: sel, amount: parseInt(tipsterBudget), odds: calculateComboOdds(type, sel.map(s => s.id), horses), isTipster: true };
+                setBetSlip(prev => [...prev, newBet]); setShowTipster(false); alert("ゆめ予想チケットを手に入れたよ！下のリストをチェックしてね。");
+            };
+            const addToSlip = () => {
+                const req = BET_TYPES[betType].count; const sel = selectedHorses.slice(0, req);
+                if (sel.includes(null)) { alert("いっしょに走ってほしい子をえらんでね。"); return; }
+                if (new Set(sel).size !== sel.length) { alert("同じゆめ生き物を重ねてえらぶことはできないよ。"); return; }
+                if (betAmount <= 0) return;
+                const newBet = { id: Date.now(), type: betType, typeName: BET_TYPES[betType].name, selection: sel.map(idx => horses[idx]), amount: parseInt(betAmount), odds: calculateComboOdds(betType, sel.map(i => horses[i].id), horses), isTipster: false };
+                setBetSlip([...betSlip, newBet]);
+            };
+            const startRace = () => {
+                const total = betSlip.reduce((s, b) => s + b.amount, 0);
+                if (total === 0 && !confirm("チケットなしで、ただ見て楽しむ？")) return;
+                if (total > wallet && !confirm(`ジュエルが少し足りないみたい…\nポシェット：${wallet.toLocaleString()}ジュエル\nゆめチケ：${total.toLocaleString()}ジュエル\n\nちょっとだけ未来のジュエルをあてにしてパレードに参加しちゃう？`)) return;
+                setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなくゆめパレードがはじまります…");
+                setTimeout(() => setCommentary("トランペットのファンファーレがひびきわたる！"), 300); setTimeout(() => setCommentary("ゆめ生き物たちがゲートにおさまっていく…"), 1800);
+                setTimeout(() => { setPhase('racing'); setCommentary("パレード、スタート！！"); runRace(); }, 2500);
+            };
+            const runRace = () => {
+                let currentProgress = horses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
+                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - horses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
+                setRaceProgress(currentProgress);
+                let time = 0, nextRank = 1, finishedOrder = [];
+                const loop = () => {
+                    time += 0.1;
+                    currentProgress = currentProgress.map(p => {
+                        if (p.rank !== null) return p;
+                        const horse = horses.find(h => h.id === p.id);
+                        let targetSpeed = p.maxSpeed * (1 + (horse.condition * 0.3) - (horse.weightDiff > 0 ? horse.weightDiff * 0.005 : 0));
+                        const pct = p.dist / RACE_TOTAL_DISTANCE;
+                        if (p.status === 'late_start') { targetSpeed *= 0.5; if (pct > 0.05 + Math.random() * 0.05) p.status = 'normal'; }
+                        if (pct > 0.2 && pct < 0.7 && p.status === 'normal' && Math.random() < (10 - horse.jockeyWeight) * 0.0005) p.status = 'kakari';
+                        if (p.status === 'kakari') { targetSpeed *= 1.15; p.fatigue += p.speed * 0.07; if (Math.random() < 0.03) p.status = 'normal'; } else p.fatigue += p.speed * 0.02 * (1.0 - horse.jockeyWeight * 0.02);
+                        if (pct < 0.15) { if (horse.style.id === 0) targetSpeed *= 1.2; else if (horse.style.id === 3) targetSpeed *= 0.8; } 
+                        else if (pct < 0.6) { targetSpeed *= 0.9; if (Math.random() < 0.005) targetSpeed *= 1.1; } 
+                        else if (pct < 0.85) { if (horse.style.id === 1) targetSpeed *= 1.1; if (horse.style.id === 2) targetSpeed *= 1.2; } 
+                        else { if (horse.style.id === 3) targetSpeed *= 1.5; else if (horse.style.id === 0) targetSpeed *= 0.8; else targetSpeed *= 1.0; 
+                            if (p.fatigue > horse.strength * horse.stamina * 0.9) { targetSpeed *= (1.0 - Math.min(0.4, (p.fatigue - horse.strength * horse.stamina * 0.9) * 0.05)); p.status = 'tired'; }
+                        }
+                        p.speed += ((targetSpeed - p.speed) * 0.02) + (Math.random() - 0.5) * 0.3; if(p.speed < 0.2) p.speed = 0.2;
+                        p.dist += p.speed;
+                        if (p.dist >= RACE_TOTAL_DISTANCE) { p.dist = RACE_TOTAL_DISTANCE; p.rank = nextRank++; finishedOrder.push(horse); }
+                        return p;
+                    });
+                    const sorted = [...currentProgress].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.dist - a.dist);
+                    setRaceRanking(sorted.map(p => ({ ...horses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
+                    if (Math.floor(time * 10) % 50 === 0) {
+                        const leader = sorted[0], pct = leader.dist / RACE_TOTAL_DISTANCE;
+                        if (pct < 0.15) setCommentary(currentProgress.some(p=>p.status==='late_start') ? `おっと！出遅れが発生。` : `各馬、きれいなスタートを切りました。`);
+                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${horses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${horses[leader.id].name}がかわいくパレードをひっぱります。`);
+                        else if (pct < 0.6) setCommentary(`レースは中盤、${horses[leader.id].name}が先頭をキープ。`);
+                        else if (pct < 0.85) setCommentary(`ハートのカーブをまがって、みんなでふわっとかけおりていく！`);
+                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${horses[leader.id].name}、ちょっとつかれてきたかも…！` : `${horses[leader.id].name}、このままゴールリボンをきるのか！？`);
+                        else if (!finalResult) setCommentary(`ゴールのハートまでもう少し！`);
+                    }
+                    if (nextRank > horses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
+                };
+                animationRef.current = requestAnimationFrame(loop);
+            };
+            const processResults = (order) => {
+                setCommentary(`いちばんにゴールテープをきったのは… ${order[0].name}！`); let totalPayout = 0;
+                betSlip.forEach(bet => { if (checkWin(bet, order)) totalPayout += Math.floor(bet.amount * bet.odds); });
+                setWallet(prev => prev + totalPayout);
+                setResultLog(prev => [{ race: raceCount, winner: order[0].name, betTotal: betSlip.reduce((s, b) => s + b.amount, 0), payout: totalPayout }, ...prev]);
+            };
+
+            const handleBetTypeChange = (newType) => {
+                setBetType(newType);
+                setSelectedHorses([null, null, null]);
+            };
+
+            const HeartTrack = ({ horses, progress }) => {
+                const START_T = 0.9;
+                const heartPos = (t, laneIdx) => {
+                    // ★修正: ハートを横に広くし、線幅を考慮して画面内に収める
+                    const cx = 500, cy = 250;
+                    const scaleX = 17; // 横に広く
+                    const scaleY = 8;  // 高さは少し抑える
+                    const offset = (laneIdx - 3.5) * 0.05; // オフセット調整
+                    
+                    let x0 = 16 * Math.pow(Math.sin(t), 3);
+                    let y0 = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                    
+                    let x = cx + x0 * scaleX;
+                    let y = cy - y0 * scaleY;
+                    
+                    return { 
+                        x: cx + (x - cx) * (1 + offset), 
+                        y: cy + (y - cy) * (1 + offset) 
+                    };
+                };
+                const pathPts = useMemo(() => { const p=[]; for(let i=0;i<=220;i++) {const {x,y}=heartPos(START_T+2*Math.PI*(i/220),3.5); p.push(`${x},${y}`);} return p.join(' '); }, []);
+                const goal = useMemo(() => heartPos(START_T, 3.5), []);
+                return (
+                    <div className="relative w-full aspect-[2/1] bg-pink-100 rounded-3xl overflow-hidden shadow-inner border-4 border-pink-300">
+                        <div className="absolute inset-0 grass-pattern-kirakira opacity-70"></div>
+                        {/* ★修正: viewBox 1000 500 で全体を表示 */}
+                        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
+                            <defs><linearGradient id="tG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f472b6"/><stop offset="1" stopColor="#a855f7"/></linearGradient></defs>
+                            {/* ★修正: strokeWidth 110 (ほどよい太さ) */}
+                            <polyline points={pathPts} fill="none" stroke="url(#tG)" strokeWidth="110" strokeLinejoin="round" strokeLinecap="round" />
+                            <polyline points={pathPts} fill="none" stroke="white" strokeWidth="4" strokeDasharray="15,15" opacity="0.6" />
+                            <line x1={goal.x} y1={goal.y-60} x2={goal.x} y2={goal.y+60} stroke="#fb7185" strokeWidth="8"/>
+                            <text x={goal.x + 20} y={goal.y} fill="#fb7185" fontSize="24" fontWeight="bold" style={{textShadow: '2px 2px 0 #fff'}}>GOAL</text>
+                            <text x={goal.x + 20} y={goal.y - 40} fill="#f472b6" fontSize="18" opacity="0.8" style={{textShadow: '2px 2px 0 #fff'}}>START</text>
+                        </svg>
+                        {horses.map(h => {
+                            const p = progress.find(pr => pr.id === h.id); if(!p) return null;
+                            const pos = heartPos(START_T + 2 * Math.PI * (p.dist / RACE_TOTAL_DISTANCE), h.id);
+                            const pal = ['#fed7e2', '#fbb6ce', '#bfdbfe', '#a5b4fc', '#fde68a', '#bbf7d0', '#fed7aa', '#f9a8d4'];
+                            // ★修正: top位置計算を /5 に変更 (height 500対応)
+                            return <div key={h.id} className="absolute flex flex-col items-center justify-center transition-transform duration-100 will-change-transform" style={{left:`${pos.x/10}%`, top:`${pos.y/5}%`, width:'4%', height:'10%', transform:'translate(-50%,-50%)', zIndex:Math.floor(p.dist)}}>
+                                <div className={`text-2xl filter drop-shadow-md horse-gallop ${p.status==='tired'?'grayscale':''}`}>{h.avatar}</div>
+                                <div className="text-[8px] text-pink-900 px-1 rounded-full whitespace-nowrap -mt-1 font-bold border border-pink-200 bg-white/90" style={{backgroundColor:pal[h.id%8]}}>{h.number}.{h.name}</div>
+                            </div>
+                        })}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen pb-24 text-pink-900">
+                    <header className="bg-white/80 backdrop-blur sticky top-0 z-20 shadow-md border-b border-pink-200 px-3 py-2 flex justify-between items-center">
+                        <div className="flex items-center gap-2" onClick={phase === 'racing' ? null : resetGame} style={{ cursor: phase === 'racing' ? 'not-allowed' : 'pointer', opacity: phase === 'racing' ? 0.5 : 1 }}>
+                            <Trophy className="text-pink-400" size={24} />
+                            <div>
+                                <h1 className="font-bold text-lg leading-tight text-pink-600 flex items-center gap-2">
+                                    ゆめかわレースパーク
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); if(phase !== 'racing') onOpenSwitch(); }} 
+                                        className={`bg-pink-100 hover:bg-pink-200 p-1 rounded-full transition-colors ${phase === 'racing' ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                                        title="モード切替"
+                                    >🐴</button>
+                                </h1>
+                                <span className="text-xs text-pink-300">PARADE {raceCount}</span>
+                            </div>
+                        </div>
+                        <div className="relative group cursor-pointer" onMouseEnter={() => setShowHistory(true)} onMouseLeave={() => setShowHistory(false)}>
+                            <div className={`flex items-center gap-2 px-3 py-1 rounded-full transition-colors ${wallet < 0 ? 'bg-rose-200 animate-pulse' : 'bg-pink-100'}`}>
+                                <Coins className={wallet < 0 ? 'text-rose-500' : 'text-pink-400'} size={16} />
+                                <span className={`font-mono font-bold text-lg ${wallet < 0 ? 'text-rose-500' : 'text-pink-600'}`}>{wallet.toLocaleString()}</span>
+                                <span className="text-[11px] text-pink-400">ジュエル</span>
+                            </div>
+                            {showHistory && (
+                                <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-pink-200 rounded-2xl shadow-2xl p-3 z-50">
+                                    <h4 className="text-xs text-pink-400 font-bold mb-2 flex items-center gap-1"><Info size={12} /> きらきら履歴 (直近10件)</h4>
+                                    <div className="max-h-60 overflow-y-auto history-scroll space-y-2">
+                                        {resultLog.length === 0 ? <div className="text-xs text-pink-200 text-center py-4">履歴なし</div> : resultLog.slice(0, 10).map((log, i) => (
+                                            <div key={i} className="bg-pink-50 p-2 rounded-xl text-xs border border-pink-100">
+                                                <div className="flex justify-between mb-1">
+                                                    <span className="text-pink-500 font-bold">P{log.race}</span>
+                                                    <span className="truncate max-w-[120px] text-pink-400">{log.winner}</span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <span className="text-pink-300 text-[11px]">{log.betTotal} → {log.payout}</span>
+                                                    <span className={`font-bold ${log.payout-log.betTotal >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                        {log.payout-log.betTotal > 0 ? '+' : ''}{(log.payout-log.betTotal).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-pink-100 text-right text-xs">
+                                        <div className="text-pink-300">Total Profit</div>
+                                        <div className={`font-mono font-bold text-sm ${wallet - 100000 >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                            {wallet - 100000 > 0 ? '+' : ''}{(wallet - 100000).toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    <main className="max-w-3xl mx-auto p-3 space-y-4">
+                        {phase === 'betting' && (
+                            <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-pink-100">
+                                <div className="bg-gradient-to-r from-pink-300 to-purple-300 text-white p-2 font-bold text-center text-sm">おともだちリスト</div>
+                                <div className="divide-y divide-pink-50">
+                                    <div className="grid grid-cols-12 text-[11px] text-pink-300 bg-pink-50 p-2 font-bold text-center"><div className="col-span-1">No.</div><div className="col-span-3 text-left pl-2">おなまえ</div><div className="col-span-2">パートナー</div><div className="col-span-2">スタイル</div><div className="col-span-2">キラキラ体重</div><div className="col-span-2">きらきら倍率</div></div>
+                                    {horses.map(h => (
+                                        <div key={h.id} className="grid grid-cols-12 items-center p-2 text-xs hover:bg-pink-50 relative group" onMouseEnter={() => setHoveredHorse(h)} onMouseLeave={() => setHoveredHorse(null)}>
+                                            <div className="col-span-1 flex justify-center"><span className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] bg-pink-100 text-pink-600 border border-pink-200">{h.number}</span></div>
+                                            <div className="col-span-3 pl-2 font-bold text-pink-700 truncate">{h.name}</div>
+                                            <div className="col-span-2 text-center text-[11px] text-pink-400 truncate">{h.jockey} <span className="text-[9px] bg-pink-100 px-1 rounded-full border border-pink-200">{h.jockeyRank}</span></div>
+                                            <div className="col-span-2 text-center text-[11px] text-pink-500"><span className="px-1 bg-pink-50 rounded-full border border-pink-100">{h.style.label}</span></div>
+                                            <div className="col-span-2 text-center text-[11px]">{h.weight}kg <span className={h.weightDiff>0?'text-rose-500':h.weightDiff<0?'text-sky-500':'text-pink-200'}>({h.weightDiff>0?'+':''}{h.weightDiff})</span></div>
+                                            <div className="col-span-2 text-right font-mono font-bold text-rose-500 pr-2">{h.odds}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {hoveredHorse && (
+                                    <div 
+                                        className="fixed z-50 bg-white/95 text-pink-900 p-3 rounded-2xl shadow-2xl text-[11px] pointer-events-none w-52 border border-pink-200 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-100"
+                                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                                    >
+                                        <div className="font-bold text-pink-500 text-sm mb-2 border-b border-pink-100 pb-1">{hoveredHorse.name}</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <div className="text-pink-300">前回のキラ度</div>
+                                                <div className="font-bold text-lg">{hoveredHorse.prevRank}番め</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-pink-300">前回の体重</div>
+                                                <div className="font-bold">{hoveredHorse.weight - hoveredHorse.weightDiff}kg</div>
+                                            </div>
+                                            <div className="col-span-2 mt-1">
+                                                <div className="text-pink-300">ごきげん</div>
+                                                <div className={`font-bold ${hoveredHorse.condition > 0.2 ? 'text-rose-400' : hoveredHorse.condition < -0.1 ? 'text-sky-400' : 'text-emerald-400'}`}>
+                                                    {hoveredHorse.condition > 0.2 ? '超ハッピー！' : hoveredHorse.condition > 0 ? 'いいかんじ' : hoveredHorse.condition > -0.1 ? 'ふつうだよ' : 'ちょっとねむい…'}
+                                                    {hoveredHorse.weightDiff > 6 && <span className="ml-2 text-[9px] bg-rose-500 text-white px-1 rounded-full">ぽっちゃり</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="p-4 bg-pink-50">
+                                    {/* Responsive Bet Type Selection (Restored) */}
+                                    <div className="block md:hidden bg-pink-50 border-b border-pink-100 p-2 mb-4">
+                                        <select 
+                                            className="w-full p-3 bg-white border border-pink-200 rounded-xl font-bold text-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
+                                            value={betType}
+                                            onChange={(e) => handleBetTypeChange(e.target.value)}
+                                        >
+                                            {Object.values(BET_TYPES).map(type => (
+                                                <option key={type.id} value={type.id}>
+                                                    {type.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="hidden md:flex bg-pink-50 border-b border-pink-100 mb-4 flex-wrap">
+                                        {Object.values(BET_TYPES).map(t => <button key={t.id} onClick={() => { setBetType(t.id); setSelectedHorses([null,null,null]); }} className={`flex-1 py-3 text-[11px] font-bold min-w-[80px] ${betType===t.id?'bg-pink-400 text-white shadow-inner':'text-pink-400 hover:bg-pink-100'}`}>{t.name}</button>)}
+                                    </div>
+
+                                    <div className="bg-pink-100 text-pink-600 text-xs p-2 rounded-xl mb-4 border border-pink-200 flex items-center gap-2">
+                                        <Info size={16} />
+                                        <span>{BET_TYPES[betType].desc}</span>
+                                    </div>
+
+                                    <div className="mb-4 space-y-2">
+                                        {[...Array(BET_TYPES[betType].count)].map((_, i) => (
+                                            <div key={i} className="flex items-center gap-2"><span className="w-20 font-bold text-pink-700 text-xs">{i===0?'1ぴきめ':i===1?'2ひきめ':'3びきめ'}</span>
+                                                <select className="flex-1 p-2 bg-white border border-pink-200 rounded text-sm text-pink-600" value={selectedHorses[i]??''} onChange={e=> {const n=[...selectedHorses]; n[i]=e.target.value===''?null:parseInt(e.target.value); setSelectedHorses(n);}}>
+                                                    <option value="">えらんでね…</option>{horses.map((h, idx) => <option key={h.id} value={idx} disabled={selectedHorses.includes(idx) && selectedHorses[i]!==idx}>{h.number}.{h.name} ({h.odds})</option>)}
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-pink-100">
+                                        <div className="text-3xl font-bold font-mono text-rose-500">{calculateComboOdds(betType, selectedHorses.slice(0, BET_TYPES[betType].count).map(i=>i!==null?horses[i]?.id:undefined), horses) || "---"} <span className="text-sm text-pink-300">倍</span></div>
+                                        <div className="flex items-center gap-2"><input type="number" step="100" className="w-24 p-1 border border-pink-200 rounded-lg text-right font-bold text-pink-700" value={betAmount} onChange={e=>setBetAmount(e.target.value)} /><button onClick={addToSlip} className="bg-gradient-to-r from-rose-400 to-pink-400 text-white font-bold py-2 px-6 rounded-full text-xs shadow">+ゆめチケにする</button></div>
+                                    </div>
+                                </div>
+
+                                {/* Bet Slip List (Betting Phase) */}
+                                {betSlip.length > 0 && (
+                                    <div className="bg-pink-100 p-4">
+                                        <h3 className="text-xs font-bold text-pink-500 mb-3 flex items-center gap-2">
+                                            <Ticket size={16} /> きみのゆめチケ
+                                        </h3>
+                                        <div className="space-y-2 mb-4">
+                                            {betSlip.map(b => (
+                                                <BettingTicket key={b.id} bet={b} onDelete={(id) => setBetSlip(betSlip.filter(x=>x.id!==id))} isResult={false} />
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between items-center pt-2 border-t border-pink-200 text-pink-700">
+                                            <span className="text-sm font-bold">ぜんぶで: {betSlip.reduce((s,b)=>s+b.amount,0).toLocaleString()}ジュエル</span>
+                                            <button onClick={startRace} className="bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-8 rounded-full shadow-lg text-sm animate-pulse">パレードをはじめる</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {showTipster && phase === 'betting' && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border-4 border-pink-300">
+                                    <div className="bg-gradient-to-r from-pink-400 to-purple-400 text-white p-4 flex justify-between font-bold"><span>ゆめ予想ルーム</span><button onClick={()=>setShowTipster(false)}>&times;</button></div>
+                                    <div className="p-6 space-y-4">
+                                        <div><label className="text-sm font-bold text-purple-700">きらきら予算</label><input type="number" className="w-full p-2 border border-pink-200 rounded" value={tipsterBudget} onChange={e=>setTipsterBudget(e.target.value)} /></div>
+                                        <div className="space-y-2">{Object.values(TIPSTER_COURSES).map(c=><div key={c.id} onClick={()=>setTipsterCourse(c.id)} className={`p-3 border rounded-lg cursor-pointer text-xs ${tipsterCourse===c.id?'border-pink-400 bg-pink-50':''}`}><div className="font-bold text-pink-600">{c.name}</div><div className="text-pink-400">{c.desc}</div></div>)}</div>
+                                        <button onClick={purchaseTipster} className="w-full bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold py-3 rounded-xl shadow-lg">ゆめ予想をもらう 💖</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        {phase === 'betting' && <button onClick={()=>setShowTipster(true)} className="fixed bottom-6 right-6 bg-gradient-to-br from-pink-400 to-purple-400 text-white p-4 rounded-full shadow-2xl border-4 border-white animate-bounce z-40 text-3xl">🔮</button>}
+
+                        {phase === 'fanfare' && <div className="h-64 flex flex-col items-center justify-center bg-pink-100 rounded-3xl border-4 border-pink-300 shadow-xl"><div className="text-6xl mb-4 animate-bounce">🎺</div><h2 className="text-3xl font-black text-pink-600 tracking-widest drop-shadow">YUME FANFARE</h2></div>}
+
+                        {phase === 'racing' && (
+                            <div className="space-y-4">
+                                <div className="bg-pink-500 text-white font-bold text-center py-2 rounded-3xl border border-pink-300 text-sm tracking-wider shadow">{commentary}</div>
+                                <HeartTrack horses={horses} progress={raceProgress} />
+                                <div className="bg-purple-900/80 text-white p-3 rounded-3xl backdrop-blur border-4 border-pink-300 overflow-x-auto flex gap-2"><span className="bg-red-500 px-2 rounded font-bold whitespace-nowrap text-xs flex items-center shadow">先頭</span>{raceRanking.map((h,i)=><div key={h.id} className={`flex items-center gap-1 px-2 py-1 rounded-full shrink-0 border text-[11px] ${h.rank?'bg-yellow-400 text-white border-yellow-200':'bg-white/20 text-pink-100 border-pink-200/30'}`}><span className="font-bold text-white">{h.rank?h.rank+'番め':i+1}</span><span className="w-4 h-4 rounded-full text-[9px] flex items-center justify-center bg-white text-purple-900 font-bold">{h.number}</span><span>{h.name}</span></div>)}</div>
+
+                                {/* Bets during race (Restored) */}
+                                {betSlip.length > 0 && (
+                                    <div className="mt-4">
+                                        <h3 className="text-pink-600 font-bold mb-2 flex items-center gap-2 text-xs px-2">
+                                            <Ticket size={16} /> もっているゆめチケ
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-2">
+                                            {betSlip.map(bet => (
+                                                <BettingTicket key={bet.id} bet={bet} onDelete={() => {}} isResult={false} hit={null} readOnly={true} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {phase === 'result' && finalResult && (
+                            <div className="bg-white text-pink-900 rounded-3xl shadow-2xl border-4 border-pink-300 overflow-hidden">
+                                <div className="bg-gradient-to-r from-pink-300 to-purple-300 p-4 text-center"><h2 className="text-2xl font-black text-white drop-shadow">RESULT</h2></div>
+                                <div className="p-4">
+                                    <div className="bg-pink-50 rounded-2xl p-3 mb-6 border border-pink-100">
+                                        <div className="grid grid-cols-12 text-xs text-pink-400 font-bold border-b border-pink-200 pb-2 mb-2">
+                                            <div className="col-span-2 text-center">順位</div>
+                                            <div className="col-span-5 pl-1">おともだち</div>
+                                            <div className="col-span-2 text-center">スタイル</div>
+                                            <div className="col-span-3 text-right pr-2">倍率</div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {finalResult.map((h, i) => (
+                                                <div key={h.id} className={`grid grid-cols-12 items-center text-sm p-1 rounded-xl ${i===0 ? 'bg-yellow-100 font-bold' : i===1?'bg-gray-100':i===2?'bg-orange-50':''}`}>
+                                                    <div className="col-span-2 text-center">
+                                                        <span className={`inline-block w-6 h-6 rounded-full leading-6 text-xs ${i===0?'bg-yellow-400 text-white':i===1?'bg-gray-400 text-white':i===2?'bg-orange-400 text-white':'text-gray-400'}`} style={{ backgroundColor: ['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][i%8], color: [0,4,7].includes(i%8)?'black':'white', border: i===0?'1px solid #ccc':'none' }}>{i+1}</span>
+                                                    </div>
+                                                    <div className="col-span-5 flex items-center gap-1 pl-1">
+                                                        <span className={`w-4 h-4 rounded text-[10px] flex items-center justify-center bg-pink-200 text-pink-700 font-bold`}>{h.number}</span>
+                                                        <span className="truncate text-xs">{h.name}</span>
+                                                    </div>
+                                                    <div className="col-span-2 text-center text-xs text-pink-400">{h.style.label}</div>
+                                                    <div className="col-span-3 text-right font-mono text-rose-500 pr-2 text-xs">{h.odds}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* User Bets Result */}
+                                    {betSlip.length > 0 && (
+                                        <div className="mb-6">
+                                            <h3 className="font-bold text-pink-500 mb-2 flex items-center gap-2 text-xs">
+                                                <Ticket size={16} /> きみのゆめチケ結果
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {betSlip.map(bet => (
+                                                    <BettingTicket 
+                                                        key={bet.id} 
+                                                        bet={bet} 
+                                                        isResult={true}
+                                                        hit={checkWin(bet, finalResult)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="text-center border-t border-pink-100 pt-4">
+                                        <div className="text-pink-300 mb-1 text-xs">今回ふえたジュエル</div>
+                                        <div className={`text-4xl font-black font-mono ${(resultLog[0]?.payout-resultLog[0]?.betTotal)>=0?'text-emerald-500':'text-rose-500'}`}>{((resultLog[0]?.payout-resultLog[0]?.betTotal)>=0?'+':'') + (resultLog[0]?.payout-resultLog[0]?.betTotal).toLocaleString()}</div>
+                                        <div className="text-[10px] sm:text-xs text-pink-300 font-bold mt-1">
+                                            (払戻：{resultLog[0]?.payout.toLocaleString()}、ゆめチケ購入：-{resultLog[0]?.betTotal.toLocaleString()})
+                                        </div>
+                                        <button onClick={() => { setRaceCount(c=>c+1); }} className="mt-6 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold py-3 px-12 rounded-full shadow-lg hover:from-pink-600 hover:to-purple-600 transition-transform hover:scale-105 flex items-center justify-center gap-2 mx-auto text-sm"><RotateCcw size={18} /> つぎのゆめパレードへ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+
+        // ============================================================================================
+        //  APP ROOT (GAME LAUNCHER)
+        // ============================================================================================
+        const GameLauncher = () => {
+            // Shared State
+            const [wallet, setWallet] = useState(() => parseInt(localStorage.getItem('g1dream_wallet') || 100000));
+            const [raceCount, setRaceCount] = useState(() => parseInt(localStorage.getItem('g1dream_raceCount') || 1));
+            const [resultLog, setResultLog] = useState(() => JSON.parse(localStorage.getItem('g1dream_resultLog') || '[]'));
+            
+            // Mode State (Default: 'normal')
+            const [mode, setMode] = useState(() => localStorage.getItem('g1dream_mode') || 'normal');
+            const [isSwitchModalOpen, setIsSwitchModalOpen] = useState(false);
+
+            // Persist Data
+            useEffect(() => {
+                localStorage.setItem('g1dream_wallet', wallet);
+                localStorage.setItem('g1dream_raceCount', raceCount);
+                localStorage.setItem('g1dream_resultLog', JSON.stringify(resultLog));
+                localStorage.setItem('g1dream_mode', mode);
+            }, [wallet, raceCount, resultLog, mode]);
+
+            // Body Style Management
+            useEffect(() => {
+                if (mode === 'normal') {
+                    document.body.className = 'mode-normal-body';
+                } else {
+                    document.body.className = 'mode-kirakira-body';
+                }
+            }, [mode]);
+
+            const switchMode = (newMode) => {
+                setMode(newMode);
+                setIsSwitchModalOpen(false);
+            };
+
+            const resetData = () => {
+                if(confirm("全てのデータをリセットしますか？")) {
+                    setWallet(100000);
+                    setRaceCount(1);
+                    setResultLog([]);
+                }
+            }
+
+            return (
+                <>
+                    {/* Mode Switcher Modal */}
+                    {isSwitchModalOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+                            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md w-full">
+                                <div className="p-6 text-center">
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center justify-center gap-2">
+                                        <SwitchIcon className="text-blue-500"/> モード選択
+                                    </h2>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button 
+                                            onClick={() => switchMode('normal')}
+                                            className={`p-4 rounded-xl border-4 transition-all hover:scale-105 ${mode === 'normal' ? 'border-green-600 bg-green-50 ring-2 ring-green-300' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                                        >
+                                            <div className="text-4xl mb-2">🐴</div>
+                                            <div className="font-bold text-green-800">本格モード</div>
+                                            <div className="text-xs text-gray-500 mt-1">リアルな競馬体験</div>
+                                        </button>
+                                        <button 
+                                            onClick={() => switchMode('kirakira')}
+                                            className={`p-4 rounded-xl border-4 transition-all hover:scale-105 ${mode === 'kirakira' ? 'border-pink-400 bg-pink-50 ring-2 ring-pink-300' : 'border-gray-200 bg-white hover:bg-gray-50'}`}
+                                        >
+                                            <div className="text-4xl mb-2">🦄</div>
+                                            <div className="font-bold text-pink-600">キラキラモード</div>
+                                            <div className="text-xs text-gray-500 mt-1">ゆめかわパレード</div>
+                                        </button>
+                                    </div>
+                                    <div className="mt-6 flex justify-between items-center border-t pt-4">
+                                        <button onClick={resetData} className="text-xs text-gray-400 hover:text-red-500 underline">データリセット</button>
+                                        <button onClick={() => setIsSwitchModalOpen(false)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 rounded-full font-bold text-gray-600">とじる</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Active Game Component */}
+                    {mode === 'normal' ? (
+                        <NormalMode 
+                            wallet={wallet} setWallet={setWallet}
+                            raceCount={raceCount} setRaceCount={setRaceCount}
+                            resultLog={resultLog} setResultLog={setResultLog}
+                            onOpenSwitch={() => setIsSwitchModalOpen(true)}
+                        />
+                    ) : (
+                        <KirakiraMode 
+                            wallet={wallet} setWallet={setWallet}
+                            raceCount={raceCount} setRaceCount={setRaceCount}
+                            resultLog={resultLog} setResultLog={setResultLog}
+                            onOpenSwitch={() => setIsSwitchModalOpen(true)}
+                        />
+                    )}
+                </>
+            );
+        };
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<GameLauncher />);
     </script>
 </body>
 </html>
