@@ -278,21 +278,13 @@
                     horse.odds = parseFloat(rawOdds.toFixed(1));
                 });
 
-                if (Math.random() < 0.08) { 
-                    const darkHorses = newHorses.filter(h => h.odds >= 15.0);
-                    if (darkHorses.length > 0) {
-                        const buffedHorse = darkHorses[Math.floor(Math.random() * darkHorses.length)];
-                        buffedHorse.condition = 0.3; 
-                        buffedHorse.strength += 8; 
-                    }
-                }
-
+                // ★修正: ここでのバフ処理を削除
+                
                 setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, lane: h.id, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
                 setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}レース (${patternName})、投票受付中！`); setSelectedHorses([null, null, null]);
             };
             useEffect(() => setupRace(), [raceCount]); 
 
-            // ★修正: アニメーションのクリーンアップを追加
             useEffect(() => {
                 return () => {
                     if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -300,7 +292,6 @@
             }, []);
 
             const purchaseTipster = () => {
-                // ★修正: メッセージを「借金して購入？」から「支払いは発走時にまとめて（借金になるかも）」に変更
                 if (tipsterBudget > wallet && wallet >= 100) alert("所持金が不足していますが、予想チケットを発行します。\n代金はレース発走時にまとめて精算されます（借金になります）。");
                 else if (tipsterBudget <= 0) { alert("予算を入力してください。"); return; }
                 
@@ -330,24 +321,58 @@
                 const newBet = { id: Date.now(), type: betType, typeName: BET_TYPES[betType].name, selection: sel.map(idx => horses[idx]), amount: parseInt(betAmount), odds: calculateComboOdds(betType, sel.map(i => horses[i].id), horses), isTipster: false };
                 setBetSlip([...betSlip, newBet]);
             };
+            
             const startRace = () => {
                 const total = betSlip.reduce((s, b) => s + b.amount, 0);
                 if (total === 0 && !confirm("賭け金なしで観戦しますか？")) return;
                 if (total > wallet && !confirm(`資金が足りません！\n残高: ${wallet.toLocaleString()}円\n賭け金: ${total.toLocaleString()}円\n\n借金して賭けますか？`)) return;
+
+                // ★修正: 大穴チャンス（サイレント修正）をここで実行
+                let raceHorses = horses.map(h => ({ ...h })); // データをコピー
+                
+                // 8%の確率でサイレント修正発動
+                if (Math.random() < 0.08) { 
+                    const darkHorses = raceHorses.filter(h => h.odds >= 15.0);
+                    if (darkHorses.length > 0) {
+                        const targetIdx = Math.floor(Math.random() * darkHorses.length);
+                        const targetId = darkHorses[targetIdx].id;
+                        
+                        // 対象の馬を強化
+                        raceHorses = raceHorses.map(h => {
+                            if (h.id === targetId) {
+                                return {
+                                    ...h,
+                                    condition: 0.3, // 絶好調
+                                    strength: h.strength + 15 // 能力大幅強化
+                                };
+                            }
+                            return h;
+                        });
+                        console.log("Dark horse buff activated!", darkHorses[targetIdx].name);
+                    }
+                }
+                
+                // ステート更新（レースには反映されるが、プレイヤーの予想時には反映されなかったことになる）
+                setHorses(raceHorses);
+
                 setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなく発走です...");
                 setTimeout(() => setCommentary("ファンファーレが鳴り響きます！"), 300); setTimeout(() => setCommentary("各馬ゲートイン完了..."), 1800);
-                setTimeout(() => { setPhase('racing'); setCommentary("スタートしました！"); runRace(); }, 2500);
+                // ★修正: 強化後の raceHorses を runRace に渡す
+                setTimeout(() => { setPhase('racing'); setCommentary("スタートしました！"); runRace(raceHorses); }, 2500);
             };
-            const runRace = () => {
-                let currentProgress = horses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
-                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - horses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
+
+            // ★修正: runRace が引数を受け取れるように変更
+            const runRace = (currentHorses) => {
+                const targetHorses = currentHorses || horses;
+                let currentProgress = targetHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
+                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - targetHorses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
                 setRaceProgress(currentProgress);
                 let time = 0, nextRank = 1, finishedOrder = [];
                 const loop = () => {
                     time += 0.1;
                     currentProgress = currentProgress.map(p => {
                         if (p.rank !== null) return p;
-                        const horse = horses.find(h => h.id === p.id);
+                        const horse = targetHorses.find(h => h.id === p.id);
                         let targetSpeed = p.maxSpeed * (1 + (horse.condition * 0.3) - (horse.weightDiff > 0 ? horse.weightDiff * 0.005 : 0));
                         const pct = p.dist / RACE_TOTAL_DISTANCE;
                         if (p.status === 'late_start') { targetSpeed *= 0.5; if (pct > 0.05 + Math.random() * 0.05) p.status = 'normal'; }
@@ -365,16 +390,16 @@
                         return p;
                     });
                     const sorted = [...currentProgress].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.dist - a.dist);
-                    setRaceRanking(sorted.map(p => ({ ...horses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
+                    setRaceRanking(sorted.map(p => ({ ...targetHorses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
                     if (Math.floor(time * 10) % 50 === 0) {
                         const leader = sorted[0], pct = leader.dist / RACE_TOTAL_DISTANCE;
                         if (pct < 0.15) setCommentary(currentProgress.some(p=>p.status==='late_start') ? `おっと！出遅れが発生。` : `各馬、きれいなスタートを切りました。`);
-                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${horses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${horses[leader.id].name}がレースを引っ張る！`);
-                        else if (pct < 0.6) setCommentary(`レースは中盤、${horses[leader.id].name}が先頭をキープ。`);
-                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${horses[leader.id].name}、足色が鈍った！` : `${horses[leader.id].name}、先頭だ！押し切れるか！？`);
+                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${targetHorses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${targetHorses[leader.id].name}がレースを引っ張る！`);
+                        else if (pct < 0.6) setCommentary(`レースは中盤、${targetHorses[leader.id].name}が先頭をキープ。`);
+                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${targetHorses[leader.id].name}、足色が鈍った！` : `${targetHorses[leader.id].name}、先頭だ！押し切れるか！？`);
                         else if (!finalResult) setCommentary(`ゴールまであと少し！`);
                     }
-                    if (nextRank > horses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
+                    if (nextRank > targetHorses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
                 };
                 animationRef.current = requestAnimationFrame(loop);
             };
@@ -871,21 +896,13 @@
                     horse.odds = parseFloat(rawOdds.toFixed(1));
                 });
 
-                if (Math.random() < 0.08) {
-                    const darkHorses = newHorses.filter(h => h.odds >= 15.0);
-                    if (darkHorses.length > 0) {
-                        const buffedHorse = darkHorses[Math.floor(Math.random() * darkHorses.length)];
-                        buffedHorse.condition = 0.3; 
-                        buffedHorse.strength += 8;  
-                    }
-                }
+                // ★修正: ここでのバフ処理を削除
 
                 setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
                 setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}きらきらパレード（${patternName}）きらきら受付中♪`); setSelectedHorses([null, null, null]);
             };
             useEffect(() => setupRace(), [raceCount]);
 
-            // ★修正: アニメーションのクリーンアップを追加
             useEffect(() => {
                 return () => {
                     if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -893,7 +910,6 @@
             }, []);
 
             const purchaseTipster = () => {
-                // ★修正: メッセージを「借金して購入？」から「支払いは発走時にまとめて（借金になるかも）」に変更
                 if (tipsterBudget > wallet && wallet >= 100) alert("ジュエルが不足していますが、ゆめ予想チケットを発行します。\n代金はパレード開始時にまとめて精算されます（借金になります）。");
                 else if (tipsterBudget <= 0) { alert("きらきら予算を入力してね。"); return; }
                 
@@ -923,24 +939,52 @@
                 const newBet = { id: Date.now(), type: betType, typeName: BET_TYPES[betType].name, selection: sel.map(idx => horses[idx]), amount: parseInt(betAmount), odds: calculateComboOdds(betType, sel.map(i => horses[i].id), horses), isTipster: false };
                 setBetSlip([...betSlip, newBet]);
             };
+
             const startRace = () => {
                 const total = betSlip.reduce((s, b) => s + b.amount, 0);
                 if (total === 0 && !confirm("チケットなしで、ただ見て楽しむ？")) return;
                 if (total > wallet && !confirm(`ジュエルが少し足りないみたい…\nポシェット：${wallet.toLocaleString()}ジュエル\nゆめチケ：${total.toLocaleString()}ジュエル\n\nちょっとだけ未来のジュエルをあてにしてパレードに参加しちゃう？`)) return;
+
+                // ★修正: 大穴チャンス（サイレント修正）をここで実行
+                let raceHorses = horses.map(h => ({ ...h })); 
+                if (Math.random() < 0.08) {
+                    const darkHorses = raceHorses.filter(h => h.odds >= 15.0);
+                    if (darkHorses.length > 0) {
+                        const targetIdx = Math.floor(Math.random() * darkHorses.length);
+                        const targetId = darkHorses[targetIdx].id;
+                        raceHorses = raceHorses.map(h => {
+                            if (h.id === targetId) {
+                                return {
+                                    ...h,
+                                    condition: 0.3, 
+                                    strength: h.strength + 15
+                                };
+                            }
+                            return h;
+                        });
+                        console.log("KiraKira buff activated!", darkHorses[targetIdx].name);
+                    }
+                }
+                setHorses(raceHorses);
+
                 setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなくきらきらパレードがはじまります…");
                 setTimeout(() => setCommentary("トランペットのファンファーレがひびきわたる！"), 300); setTimeout(() => setCommentary("おともだちが並んでいます………"), 1800);
-                setTimeout(() => { setPhase('racing'); setCommentary("パレード、スタート！！"); runRace(); }, 2500);
+                // ★修正: 強化後の raceHorses を runRace に渡す
+                setTimeout(() => { setPhase('racing'); setCommentary("パレード、スタート！！"); runRace(raceHorses); }, 2500);
             };
-            const runRace = () => {
-                let currentProgress = horses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
-                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - horses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
+
+            // ★修正: runRace が引数を受け取れるように変更
+            const runRace = (currentHorses) => {
+                const targetHorses = currentHorses || horses;
+                let currentProgress = targetHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
+                currentProgress = currentProgress.map(p => { if (Math.random() < (10 - targetHorses[p.id].jockeyWeight) * 0.008) p.status = 'late_start'; return p; });
                 setRaceProgress(currentProgress);
                 let time = 0, nextRank = 1, finishedOrder = [];
                 const loop = () => {
                     time += 0.1;
                     currentProgress = currentProgress.map(p => {
                         if (p.rank !== null) return p;
-                        const horse = horses.find(h => h.id === p.id);
+                        const horse = targetHorses.find(h => h.id === p.id);
                         let targetSpeed = p.maxSpeed * (1 + (horse.condition * 0.3) - (horse.weightDiff > 0 ? horse.weightDiff * 0.005 : 0));
                         const pct = p.dist / RACE_TOTAL_DISTANCE;
                         if (p.status === 'late_start') { targetSpeed *= 0.5; if (pct > 0.05 + Math.random() * 0.05) p.status = 'normal'; }
@@ -958,17 +1002,17 @@
                         return p;
                     });
                     const sorted = [...currentProgress].sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.dist - a.dist);
-                    setRaceRanking(sorted.map(p => ({ ...horses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
+                    setRaceRanking(sorted.map(p => ({ ...targetHorses.find(h => h.id === p.id), rank: p.rank }))); setRaceProgress([...currentProgress]); setRaceTime(time);
                     if (Math.floor(time * 10) % 50 === 0) {
                         const leader = sorted[0], pct = leader.dist / RACE_TOTAL_DISTANCE;
                         if (pct < 0.15) setCommentary(currentProgress.some(p=>p.status==='late_start') ? `おっと！出遅れが発生。` : `各馬、きれいなスタートを切りました。`);
-                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${horses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${horses[leader.id].name}がかわいくパレードをひっぱります。`);
-                        else if (pct < 0.6) setCommentary(`レースは中盤、${horses[leader.id].name}が先頭をキープ。`);
+                        else if (pct < 0.4) setCommentary(currentProgress.some(p=>p.status==='kakari') ? `${targetHorses[currentProgress.find(p=>p.status==='kakari').id].name}、行きたがっています！` : `${targetHorses[leader.id].name}がかわいくパレードをひっぱります。`);
+                        else if (pct < 0.6) setCommentary(`レースは中盤、${targetHorses[leader.id].name}が先頭をキープ。`);
                         else if (pct < 0.85) setCommentary(`ハートのカーブをまがって、みんなでふわっとかけおりていく！`);
-                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${horses[leader.id].name}、ちょっとつかれてきたかも…！` : `${horses[leader.id].name}、このままゴールリボンをきるのか！？`);
+                        else if (pct < 0.95) setCommentary(currentProgress.find(p=>p.status==='tired' && p.id===leader.id) ? `${targetHorses[leader.id].name}、ちょっとつかれてきたかも…！` : `${targetHorses[leader.id].name}、このままゴールリボンをきるのか！？`);
                         else if (!finalResult) setCommentary(`ゴールのハートまでもう少し！`);
                     }
-                    if (nextRank > horses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
+                    if (nextRank > targetHorses.length) { setFinalResult(finishedOrder); setPhase('result'); processResults(finishedOrder); cancelAnimationFrame(animationRef.current); } else animationRef.current = requestAnimationFrame(loop);
                 };
                 animationRef.current = requestAnimationFrame(loop);
             };
