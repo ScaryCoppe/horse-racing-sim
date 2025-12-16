@@ -108,7 +108,7 @@
         const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
         const Ticket = (p) => <IconBase {...p}><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></IconBase>;
         const Info = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
-        const Sparkles = (p) => <IconBase {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
+        const Sparkles = (p) => <IconBase {...p}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></IconBase>;
         const SwitchIcon = (p) => <IconBase {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></IconBase>;
 
         const resetGame = () => {
@@ -277,8 +277,6 @@
                     if (rawOdds < 1.1) rawOdds = 1.1; if (rawOdds > 300.0) rawOdds = 300.0 + (Math.random() * 200); 
                     horse.odds = parseFloat(rawOdds.toFixed(1));
                 });
-
-                // ★修正: ここでのバフ処理を削除
                 
                 setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, lane: h.id, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
                 setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}レース (${patternName})、投票受付中！`); setSelectedHorses([null, null, null]);
@@ -327,8 +325,7 @@
                 if (total === 0 && !confirm("賭け金なしで観戦しますか？")) return;
                 if (total > wallet && !confirm(`資金が足りません！\n残高: ${wallet.toLocaleString()}円\n賭け金: ${total.toLocaleString()}円\n\n借金して賭けますか？`)) return;
 
-                // ★修正: 大穴チャンス（サイレント修正）をここで実行
-                let raceHorses = horses.map(h => ({ ...h })); // データをコピー
+                let raceHorses = horses.map(h => ({ ...h })); 
                 
                 // 8%の確率でサイレント修正発動
                 if (Math.random() < 0.08) { 
@@ -336,14 +333,12 @@
                     if (darkHorses.length > 0) {
                         const targetIdx = Math.floor(Math.random() * darkHorses.length);
                         const targetId = darkHorses[targetIdx].id;
-                        
-                        // 対象の馬を強化
                         raceHorses = raceHorses.map(h => {
                             if (h.id === targetId) {
                                 return {
                                     ...h,
-                                    condition: 0.3, // 絶好調
-                                    strength: h.strength + 15 // 能力大幅強化
+                                    condition: 0.3,
+                                    strength: h.strength + 15
                                 };
                             }
                             return h;
@@ -352,16 +347,13 @@
                     }
                 }
                 
-                // ステート更新（レースには反映されるが、プレイヤーの予想時には反映されなかったことになる）
                 setHorses(raceHorses);
 
                 setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなく発走です...");
                 setTimeout(() => setCommentary("ファンファーレが鳴り響きます！"), 300); setTimeout(() => setCommentary("各馬ゲートイン完了..."), 1800);
-                // ★修正: 強化後の raceHorses を runRace に渡す
                 setTimeout(() => { setPhase('racing'); setCommentary("スタートしました！"); runRace(raceHorses); }, 2500);
             };
 
-            // ★修正: runRace が引数を受け取れるように変更
             const runRace = (currentHorses) => {
                 const targetHorses = currentHorses || horses;
                 let currentProgress = targetHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
@@ -558,7 +550,6 @@
                                             <Ticket size={16} /> 投票済みチケット
                                         </h3>
                                         <div className="space-y-2 mb-4">
-                                            {/* ★修正: onDeleteを実装し、readOnlyをfalseに変更 */}
                                             {betSlip.map(b => (
                                                 <BettingTicket key={b.id} bet={b} onDelete={(id) => setBetSlip(betSlip.filter(ticket => ticket.id !== id))} isResult={false} hit={null} readOnly={false} />
                                             ))}
@@ -599,35 +590,102 @@
                                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet">
                                         <path d="M 200 100 L 800 100 A 150 150 0 1 1 800 400 L 200 400 A 150 150 0 1 1 200 100 Z" fill="none" stroke="#eab308" strokeWidth="120" strokeOpacity="0.2" />
                                         <path d="M 200 100 L 800 100 A 150 150 0 1 1 800 400 L 200 400 A 150 150 0 1 1 200 100 Z" fill="none" stroke="white" strokeWidth="2" strokeDasharray="20,20" />
-                                        <line x1="800" y1="60" x2="800" y2="140" stroke="white" strokeWidth="8" />
-                                        <text x="810" y="130" fill="white" fontSize="20" fontWeight="bold">GOAL</text>
-                                        <text x="810" y="90" fill="white" fontSize="16" opacity="0.7">START</text>
+                                        <line x1="200" y1="360" x2="200" y2="440" stroke="white" strokeWidth="8" />
+                                        <text x="190" y="380" fill="white" fontSize="20" fontWeight="bold" textAnchor="end">GOAL</text>
+                                        <text x="190" y="420" fill="white" fontSize="16" opacity="0.7" textAnchor="end">START</text>
                                     </svg>
                                     {horses.map(h => {
                                         const p = raceProgress.find(pr => pr.id === h.id); if(!p) return null;
+                                        
                                         const getPos = (d, l) => { 
-                                            const trackL=600, trackR=150, perim=trackL*2+Math.PI*trackR*2, startOff=600-(2142%perim); let dist=(d+(startOff<0?startOff+perim:startOff))%perim;
-                                            const r=trackR+(l-3.5)*12; 
-                                            if(dist<600) return {x:200+(600*(dist/600)), y:100-(l-3.5)*12}; 
-                                            if(dist<600+Math.PI*trackR) {const th=0.5*Math.PI-((dist-600)/(Math.PI*trackR))*Math.PI; return {x:800+r*Math.cos(th), y:250-r*Math.sin(th)};} 
-                                            if(dist<1200+Math.PI*trackR) return {x:800-(dist-(600+Math.PI*trackR)), y:400+(l-3.5)*12}; 
-                                            const th=1.5*Math.PI-((dist-(1200+Math.PI*trackR))/(Math.PI*trackR))*Math.PI; return {x:200+r*Math.cos(th), y:250-r*Math.sin(th)}; 
+                                            // コーススペック
+                                            const trackL = 600; 
+                                            const trackR = 150; 
+                                            const curveLen = Math.PI * trackR; // 半円の長さ
+                                            const totalLen = trackL * 2 + curveLen * 2; // 全周長
+                                            
+                                            // レーン補正
+                                            const offset = (l - 3.5) * 12;
+                                            const r = trackR + offset;
+                                            
+                                            // 区間定義
+                                            // Section 1: 左カーブ (200, 400) -> (200, 100)
+                                            // Section 2: 上辺直線 (200, 100) -> (800, 100)
+                                            // Section 3: 右カーブ (800, 100) -> (800, 400)
+                                            // Section 4: 下辺直線 (800, 400) -> (200, 400)
+                                            
+                                            const currentD = d % totalLen;
+                                            let x, y, isFlipped = false;
+
+                                            if (currentD < curveLen) {
+                                                // 左カーブ: 90度(下) -> -90度(上)へ向かって進む
+                                                // 中心 (200, 250)
+                                                // progress 0 (200,400) -> angle PI/2
+                                                // progress 1 (200,100) -> angle 3PI/2 (or -PI/2)
+                                                // 反時計回りに角度が増える: PI/2 -> PI -> 3PI/2
+                                                const progress = currentD / curveLen;
+                                                const angle = (Math.PI / 2) + (progress * Math.PI);
+                                                
+                                                x = 200 + r * Math.cos(angle);
+                                                y = 250 + r * Math.sin(angle);
+                                                
+                                                // 9時(PI)を過ぎたら反転開始
+                                                if (progress > 0.5) isFlipped = true;
+
+                                            } else if (currentD < curveLen + trackL) {
+                                                // 上辺直線: x 200 -> 800
+                                                const progress = (currentD - curveLen) / trackL;
+                                                x = 200 + (progress * 600);
+                                                y = 100 - offset;
+                                                
+                                                isFlipped = true; // 上辺はずっと反転
+
+                                            } else if (currentD < curveLen * 2 + trackL) {
+                                                // 右カーブ: -90度(上) -> 90度(下)
+                                                // 中心 (800, 250)
+                                                // 入口 (800, 100) -> angle -PI/2 (3PI/2)
+                                                // 出口 (800, 400) -> angle PI/2 (5PI/2)
+                                                // 反時計回りに角度が増える: 3PI/2 -> 2PI -> 5PI/2 (または -PI/2 -> 0 -> PI/2)
+                                                const progress = (currentD - (curveLen + trackL)) / curveLen;
+                                                const angle = (-Math.PI / 2) + (progress * Math.PI);
+                                                
+                                                x = 800 + r * Math.cos(angle);
+                                                y = 250 + r * Math.sin(angle);
+                                                
+                                                // 3時(0)まで反転
+                                                if (progress < 0.5) isFlipped = true;
+
+                                            } else {
+                                                // 下辺直線: x 800 -> 200
+                                                const progress = (currentD - (curveLen * 2 + trackL)) / trackL;
+                                                x = 800 - (progress * 600);
+                                                y = 400 + offset;
+                                                
+                                                isFlipped = false;
+                                            }
+                                            
+                                            return { x, y, isFlipped };
                                         };
-                                        const pos = getPos(p.dist, h.id);
+
+                                        const { x, y, isFlipped } = getPos(p.dist, h.id);
 
                                         let statusEffect = "";
                                         if (p.status === 'late_start') statusEffect = "opacity-50"; 
                                         if (p.status === 'kakari') statusEffect = "animate-pulse brightness-150"; 
                                         if (p.status === 'tired') statusEffect = "grayscale";
 
-                                        return <div key={h.id} className={`absolute flex flex-col items-center justify-center transition-transform duration-100 will-change-transform ${statusEffect}`} style={{left:`${pos.x/10}%`, top:`${pos.y/5}%`, width:'4%', height:'10%', transform:'translate(-50%,-50%)', zIndex:Math.floor(p.dist)}}>
-                                            <div className="text-2xl filter drop-shadow-md horse-gallop">🐴</div>
-                                            <div className="text-[8px] px-1 rounded -mt-1 font-bold whitespace-nowrap" style={{backgroundColor:['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][h.id%8], color:[0,4,7].includes(h.id%8)?'black':'white'}}>{h.number}.{h.name}</div>
-                                            
-                                            {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded border border-red-500">遅</div>}
-                                            {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded border border-yellow-400">掛</div>}
-                                            {p.status === 'tired' && <div className="absolute -top-4 text-xs font-bold text-blue-300 bg-black px-1 rounded border border-blue-300">バテ</div>}
-                                        </div>
+                                        return (
+                                            <div key={h.id} className={`absolute flex flex-col items-center justify-center transition-transform duration-100 will-change-transform ${statusEffect}`} style={{left:`${x/10}%`, top:`${y/5}%`, width:'4%', height:'10%', transform:'translate(-50%,-50%)', zIndex:Math.floor(p.dist)}}>
+                                                <div style={{ transform: isFlipped ? 'scaleX(-1)' : 'none', display: 'inline-block' }}>
+                                                    <div className="text-2xl filter drop-shadow-md horse-gallop">🐴</div>
+                                                </div>
+                                                <div className="text-[8px] px-1 rounded -mt-1 font-bold whitespace-nowrap" style={{backgroundColor:['white','black','#e53935','#1e88e5','#fdd835','#43a047','#fb8c00','#f48fb1'][h.id%8], color:[0,4,7].includes(h.id%8)?'black':'white'}}>{h.number}.{h.name}</div>
+                                                
+                                                {p.status === 'late_start' && <div className="absolute -top-4 text-xs font-bold text-red-500 bg-white px-1 rounded border border-red-500">遅</div>}
+                                                {p.status === 'kakari' && <div className="absolute -top-4 text-xs font-bold text-yellow-500 bg-black px-1 rounded border border-yellow-400">掛</div>}
+                                                {p.status === 'tired' && <div className="absolute -top-4 text-xs font-bold text-blue-300 bg-black px-1 rounded border border-blue-300">バテ</div>}
+                                            </div>
+                                        );
                                     })}
                                 </div>
                                 <div className="bg-black/80 text-white p-3 rounded-b-xl backdrop-blur">
@@ -896,8 +954,6 @@
                     horse.odds = parseFloat(rawOdds.toFixed(1));
                 });
 
-                // ★修正: ここでのバフ処理を削除
-
                 setHorses(newHorses); setBetSlip([]); setRaceProgress(newHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 })));
                 setFinalResult(null); setPhase('betting'); setCommentary(`第${raceCount}きらきらパレード（${patternName}）きらきら受付中♪`); setSelectedHorses([null, null, null]);
             };
@@ -945,7 +1001,6 @@
                 if (total === 0 && !confirm("チケットなしで、ただ見て楽しむ？")) return;
                 if (total > wallet && !confirm(`ジュエルが少し足りないみたい…\nポシェット：${wallet.toLocaleString()}ジュエル\nゆめチケ：${total.toLocaleString()}ジュエル\n\nちょっとだけ未来のジュエルをあてにしてパレードに参加しちゃう？`)) return;
 
-                // ★修正: 大穴チャンス（サイレント修正）をここで実行
                 let raceHorses = horses.map(h => ({ ...h })); 
                 if (Math.random() < 0.08) {
                     const darkHorses = raceHorses.filter(h => h.odds >= 15.0);
@@ -969,11 +1024,9 @@
 
                 setWallet(prev => prev - total); setPhase('fanfare'); setCommentary("まもなくきらきらパレードがはじまります…");
                 setTimeout(() => setCommentary("トランペットのファンファーレがひびきわたる！"), 300); setTimeout(() => setCommentary("おともだちが並んでいます………"), 1800);
-                // ★修正: 強化後の raceHorses を runRace に渡す
                 setTimeout(() => { setPhase('racing'); setCommentary("パレード、スタート！！"); runRace(raceHorses); }, 2500);
             };
 
-            // ★修正: runRace が引数を受け取れるように変更
             const runRace = (currentHorses) => {
                 const targetHorses = currentHorses || horses;
                 let currentProgress = targetHorses.map(h => ({ id: h.id, dist: 0, speed: 0, fatigue: 0, rank: null, status: 'normal', maxSpeed: (h.strength / 100) + 0.8 }));
@@ -1330,7 +1383,6 @@
         //  APP ROOT (GAME LAUNCHER)
         // ============================================================================================
         const GameLauncher = () => {
-            // ★修正: localStorage読み込み時に数値チェックを行う（NaN回避）
             const [wallet, setWallet] = useState(() => {
                 const val = parseFloat(localStorage.getItem('g1dream_wallet'));
                 return Number.isFinite(val) ? val : 100000;
