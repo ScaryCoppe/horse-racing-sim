@@ -207,6 +207,48 @@ graph TD
     GlobalState -.->|永続化| Store
                     </div>
                 </div>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">1.2 主要機能</h3>
+                <ul class="list-disc list-inside space-y-2 text-slate-600 ml-4">
+                    <li><strong>シミュレーション:</strong> 馬の能力、騎手、コンディションに基づくリアルタイムレース演算と描画。</li>
+                    <li><strong>ベッティング:</strong> 7種類の賭け式（単勝〜3連単）に対応したオッズ計算と判定。</li>
+                    <li><strong>経済システム:</strong> 所持金の増減管理、破産時の救済、履歴管理。</li>
+                    <li><strong>モード切替:</strong> CSSと設定値のホットスワップによる「本格モード」と「キラキラモード」の切り替え。</li>
+                </ul>
+
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">1.3 使用技術と選定理由</h3>
+                <p class="mb-4 text-sm text-slate-600">
+                    本システムでは、開発の迅速性、メンテナンス性、および配布の容易さを重視して以下の技術を選定しました。
+                </p>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded">View Lib</span>
+                            <h4 class="font-bold text-slate-800">React 18</h4>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                            <li><strong>選定理由:</strong> 「宣言的UI」により、レース中の馬の位置やオッズなどの頻繁に変化する状態（State）と画面表示を自動的に同期できるため。DOMを直接操作する命令的記述に比べ、コードの見通しが劇的に良くなります。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Env</span>
+                            <h4 class="font-bold text-slate-800">Buildless (CDN + Babel)</h4>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                            <li><strong>選定理由:</strong> Node.js等の環境構築が不要で、<strong>HTMLファイル一つで動作するポータビリティ</strong>を最優先しました。サーバーレスで共有でき、学習や改造のハードルを極限まで下げています。</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm md:col-span-2">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1 rounded">Styling</span>
+                            <h4 class="font-bold text-slate-800">Tailwind CSS</h4>
+                        </div>
+                        <ul class="text-sm text-slate-600 list-disc list-inside space-y-1">
+                            <li><strong>選定理由:</strong> CSSファイルを行き来することなく、HTML/JSX内でスタイリングを完結できるため、プロトタイピングの速度が向上します。また、レスポンシブ対応もクラス名のプレフィックス（`md:`など）だけで容易に実装可能です。</li>
+                        </ul>
+                    </div>
+                </div>
             </section>
 
             <!-- 2. アーキテクチャ -->
@@ -215,31 +257,66 @@ graph TD
                     2. アーキテクチャ設計
                 </h2>
 
-                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">2.1 ReactにおけるMVCモデルの解釈</h3>
+                <h3 class="text-lg font-bold text-slate-700 mt-8 mb-4">2.1 アーキテクチャパラダイム: コンポーネント指向</h3>
+                <p class="mb-4 leading-relaxed text-sm text-slate-600">
+                    本システムでは、従来のMVC（Model-View-Controller）モデルではなく、Reactが提唱する<strong>「コンポーネント指向アーキテクチャ」</strong>を採用しています。<br>
+                    MVCが「機能（データ・表示・制御）」で分割するのに対し、コンポーネント指向は「UIの部品（カード、ボタン、レース画面など）」単位で関心事を分離します。
+                </p>
+
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-50 p-4 rounded border">
+                        <h4 class="font-bold text-gray-600 text-sm mb-2 text-center">従来のMVC (機能による分割)</h4>
+                        <div class="flex flex-col gap-2 text-xs text-center">
+                            <div class="bg-green-100 p-2 rounded border border-green-200">Model (Data)</div>
+                            <div class="text-gray-400">↓↑ (複雑な依存)</div>
+                            <div class="bg-blue-100 p-2 rounded border border-blue-200">View (UI)</div>
+                            <div class="text-gray-400">↓↑</div>
+                            <div class="bg-red-100 p-2 rounded border border-red-200">Controller (Logic)</div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">画面が複雑になると、各層の結びつきがスパゲッティ化しやすい。</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded border border-blue-200">
+                        <h4 class="font-bold text-blue-800 text-sm mb-2 text-center">React (コンポーネント指向)</h4>
+                        <div class="flex gap-2 justify-center text-xs text-center h-full items-center">
+                            <div class="bg-white p-2 rounded shadow border border-gray-200 flex-1">
+                                <div class="font-bold mb-1">RaceScreen</div>
+                                <div class="text-[10px] bg-gray-100 rounded px-1">Logic+UI+Data</div>
+                            </div>
+                            <div class="bg-white p-2 rounded shadow border border-gray-200 flex-1">
+                                <div class="font-bold mb-1">BettingPanel</div>
+                                <div class="text-[10px] bg-gray-100 rounded px-1">Logic+UI+Data</div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-blue-600 mt-2">
+                            部品ごとに「データ(State)」「見た目(JSX)」「振る舞い(Handlers)」をセットで管理（カプセル化）。独立性が高い。
+                        </p>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
                     <table class="min-w-full text-left text-sm">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
-                                <th class="px-6 py-3 font-bold text-slate-700 whitespace-nowrap">役割</th>
+                                <th class="px-6 py-3 font-bold text-slate-700 whitespace-nowrap">構成要素</th>
                                 <th class="px-6 py-3 font-bold text-slate-700 whitespace-nowrap">Reactでの実装</th>
-                                <th class="px-6 py-3 font-bold text-slate-700 min-w-[300px]">説明 & Java比較</th>
+                                <th class="px-6 py-3 font-bold text-slate-700 min-w-[300px]">役割の説明</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <tr>
-                                <td class="px-6 py-4 font-bold text-blue-600">View</td>
-                                <td class="px-6 py-4 font-mono text-xs">JSX (Components)</td>
-                                <td class="px-6 py-4 text-slate-600">データの状態(State)が変化すると自動的に再描画されるUI定義。</td>
+                                <td class="px-6 py-4 font-bold text-blue-600">Component</td>
+                                <td class="px-6 py-4 font-mono text-xs">Function (JSX)</td>
+                                <td class="px-6 py-4 text-slate-600">UIの最小単位。内部に自身の状態とロジックを持ち、自己完結する。</td>
                             </tr>
                             <tr>
-                                <td class="px-6 py-4 font-bold text-green-600">Model</td>
-                                <td class="px-6 py-4 font-mono text-xs">State & Hooks</td>
-                                <td class="px-6 py-4 text-slate-600"><code>useState</code>等で保持されるデータ。<br><strong>Java比較:</strong> Observableな値として振る舞うデータオブジェクト。</td>
+                                <td class="px-6 py-4 font-bold text-green-600">State (Model)</td>
+                                <td class="px-6 py-4 font-mono text-xs">useState / useReducer</td>
+                                <td class="px-6 py-4 text-slate-600">コンポーネントが保持する「変化する値」。これが更新されると、関連するUIだけが自動的に再描画される（リアクティブ性）。</td>
                             </tr>
                             <tr>
-                                <td class="px-6 py-4 font-bold text-red-600">Controller</td>
-                                <td class="px-6 py-4 font-mono text-xs">Handlers & Effects</td>
-                                <td class="px-6 py-4 text-slate-600">イベントをトリガーにロジックを実行し、Stateを更新する関数群。</td>
+                                <td class="px-6 py-4 font-bold text-red-600">Props</td>
+                                <td class="px-6 py-4 font-mono text-xs">Arguments</td>
+                                <td class="px-6 py-4 text-slate-600">親から子へ渡されるデータや関数。これにより「単方向データフロー（親→子）」が強制され、データの流れが予測しやすくなる。</td>
                             </tr>
                         </tbody>
                     </table>
@@ -487,13 +564,18 @@ maxSpeed = (strength / 100) + 0.8
                 <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
                     <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 3: 状況に応じた目標速度の補正 (FinalTargetSpeed)</h4>
                     <p class="text-sm mb-2 text-slate-600">
-                        レースの区間（脚質）や、ランダムに発生する状態異常（掛かり・出遅れ）に応じて補正をかけ、最終的な目標速度を決定します。
+                        レースの区間（脚質）や、ランダムに発生する状態異常（掛かり・出遅れ・バテ）に応じて補正をかけます。<br>
+                        疲労計算には<strong>騎手の技術（Weight）によるスタミナ消費軽減</strong>が含まれています。
                     </p>
                     <div class="math-box">
 <span class="math-comment">// 1. 脚質による補正 (例: 逃げなら序盤1.2倍)</span>
 <span class="math-code">let finalTargetSpeed = baseTargetSpeed * styleCorrection;</span>
 
-<span class="math-comment">// 2. 状態異常による補正 (レース中ランダム発生)</span>
+<span class="math-comment">// 2. スタミナ疲労の蓄積（騎手の腕で軽減）</span>
+<span class="math-comment">// jockeyWeight(3-10)が高いほど、消費が最大20%抑えられる</span>
+<span class="math-code">fatigue += speed * 0.02 * (1.0 - jockeyWeight * 0.02);</span>
+
+<span class="math-comment">// 3. 状態異常による速度補正</span>
 <span class="math-code">if (isLateStart) finalTargetSpeed *= 0.5;  // 出遅れ時</span>
 <span class="math-code">if (isKakari)    finalTargetSpeed *= 1.15; // 掛かり時</span>
 <span class="math-code">if (isTired)     finalTargetSpeed *= 0.6;  // バテ時</span>
@@ -603,7 +685,7 @@ Noise = (Math.random() - 0.5) * 30
                         <ul class="text-xs list-disc list-inside text-red-900 space-y-1">
                             <li><strong>発生確率:</strong> 8% (レース生成時)</li>
                             <li><strong>条件:</strong> オッズ15倍以上の穴馬が存在すること</li>
-                            <li><strong>効果:</strong> 対象馬の調子を「+0.3 (絶好調)」、能力を「+8」する。</li>
+                            <li><strong>効果:</strong> 対象馬の調子を「+0.3 (絶好調)」、能力を<span class="font-bold bg-yellow-200 px-1">「+15」</span>する。</li>
                             <li><strong>目的:</strong> 人気薄の馬が激走する「ジャイアントキリング」を演出。</li>
                         </ul>
                     </div>
