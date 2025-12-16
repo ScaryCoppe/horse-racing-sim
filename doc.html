@@ -50,6 +50,21 @@
             font-size: 0.9rem;
             color: #1e293b;
             overflow-x: auto;
+            line-height: 1.6;
+        }
+        
+        .math-comment {
+            color: #64748b;
+            font-style: italic;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .math-code {
+            color: #0f172a;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 1rem;
         }
         
         .example-box {
@@ -456,24 +471,69 @@ maxSpeed = (strength / 100) + 0.8
                 </div>
 
                 <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
-                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 2: 目標速度 (targetSpeed) の決定</h4>
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 2: 基礎目標速度の決定 (BaseTargetSpeed)</h4>
+                    <p class="text-sm mb-2 text-slate-600">
+                        馬の能力と当日の調子に基づき、その馬が本来出せるパフォーマンス（ベース速度）を算出します。<br>
+                        この段階では、レース展開や状態異常による影響は含まれません。
+                    </p>
                     <div class="math-box">
-TargetSpeed = maxSpeed 
-              * (1 + condition * 0.3) 
-              * (脚質補正倍率)
-              - (体重増減ペナルティ)
+<span class="math-comment">// 基礎目標速度 = 最高速度 × 調子補正 - 体重ペナルティ</span>
+<span class="math-code">let baseTargetSpeed = maxSpeed 
+                    * (1 + condition * 0.3) 
+                    - (weightDiff > 0 ? weightDiff * 0.005 : 0);</span>
                     </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6">
-                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 3: 慣性移動と位置更新</h4>
-                    <p class="text-sm mb-2">急に速度を変えず、徐々に目標速度へ近づける処理（線形補間）です。</p>
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 3: 状況に応じた目標速度の補正 (FinalTargetSpeed)</h4>
+                    <p class="text-sm mb-2 text-slate-600">
+                        レースの区間（脚質）や、ランダムに発生する状態異常（掛かり・出遅れ）に応じて補正をかけ、最終的な目標速度を決定します。
+                    </p>
                     <div class="math-box">
-// 速度の更新 (0.02は加速度係数)
-currentSpeed += (TargetSpeed - currentSpeed) * 0.02
+<span class="math-comment">// 1. 脚質による補正 (例: 逃げなら序盤1.2倍)</span>
+<span class="math-code">let finalTargetSpeed = baseTargetSpeed * styleCorrection;</span>
 
-// 位置の更新 (積分)
-distance += currentSpeed
+<span class="math-comment">// 2. 状態異常による補正 (レース中ランダム発生)</span>
+<span class="math-code">if (isLateStart) finalTargetSpeed *= 0.5;  // 出遅れ時</span>
+<span class="math-code">if (isKakari)    finalTargetSpeed *= 1.15; // 掛かり時</span>
+<span class="math-code">if (isTired)     finalTargetSpeed *= 0.6;  // バテ時</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-bl">重要ポイント</div>
+                    <h4 class="font-bold text-lg text-indigo-700 mb-3 border-b pb-2">Step 4: 実際の速度更新と移動（積分）</h4>
+                    <p class="text-sm mb-3 text-slate-700">
+                        ここで<strong>「慣性」</strong>と<strong>「ランダムノイズ」</strong>が計算され、リアルな挙動が作られます。このステップの足し算を繰り返すことでレースが進行します。
+                    </p>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-3">
+                        <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                            <h5 class="font-bold text-sm text-slate-700 mb-1">係数「0.02」の意味：慣性 (Inertia)</h5>
+                            <p class="text-xs text-slate-600">
+                                いきなり目標速度にならず、<span class="font-bold text-red-500">1フレームあたり2%ずつ</span>目標に近づくように変化します。
+                                これにより、「馬の重さ」や「徐々に加速する様子」を表現しています。
+                            </p>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded border border-slate-200">
+                            <h5 class="font-bold text-sm text-slate-700 mb-1">ノイズの意味：ゆらぎ</h5>
+                            <p class="text-xs text-slate-600">
+                                毎フレーム微量なランダム値を加算します。これにより、同じ能力値の馬でも「運」によって微妙に速度が変化し、順位が入れ替わります。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="math-box">
+<span class="math-comment">// ノイズ（ゆらぎ）を計算: -0.15 〜 +0.15 の範囲</span>
+<span class="math-code">const noise = (Math.random() - 0.5) * 0.3;</span>
+
+<span class="math-comment">// 1. 速度の更新（慣性 + ランダムノイズ）</span>
+<span class="math-comment">// 現在速度に、(目標との差分 × 2%) と ノイズ を足す</span>
+<span class="math-code">currentSpeed = currentSpeed + (finalTargetSpeed - currentSpeed) * 0.02 + noise;</span>
+
+<span class="math-comment">// 2. 位置の更新（積分）</span>
+<span class="math-comment">// 毎フレーム、計算された速度分だけ進む</span>
+<span class="math-code">distance = distance + currentSpeed;</span>
                     </div>
                 </div>
 
@@ -500,18 +560,21 @@ distance += currentSpeed
                             (100 / 100) + 0.8 = 1.8
                         </li>
                         <li>
-                            <span class="font-bold text-indigo-600">調子補正込み:</span>
-                            1.8 * 1.06 = 1.908
+                            <span class="font-bold text-indigo-600">BaseTargetSpeed (Step 2):</span>
+                            1.8 * (1 + 0.2*0.3) = 1.908
                         </li>
                         <li>
-                            <span class="font-bold text-indigo-600">TargetSpeed:</span>
-                            1.908 * 1.2 = <span class="font-bold px-1">2.29</span>
+                            <span class="font-bold text-indigo-600">FinalTargetSpeed (Step 3):</span>
+                            1.908 * 1.2 (脚質) = <span class="font-bold px-1">2.29</span>
                         </li>
                         <li>
-                            <span class="font-bold text-indigo-600">次フレーム速度:</span>
-                            0 + (2.29 - 0) * 0.02 = <span class="font-bold px-1">0.046</span>
+                            <span class="font-bold text-indigo-600">次フレーム速度 (Step 4):</span><br>
+                            0 + (2.29 - 0) * 0.02 <span class="text-slate-500">+ (ノイズ ±0.15)</span> = <span class="font-bold px-1">0.046 ± α</span>
                         </li>
                     </ol>
+                    <p class="text-xs text-slate-500 mt-2 bg-white p-2 rounded border border-green-200">
+                        <strong>解説:</strong> 1フレーム目の移動距離は約 0.046 です。この計算を繰り返し、合計距離が 2142 になるまで続けます。
+                    </p>
                 </div>
 
                 <h3 id="tipster-logic" class="text-lg font-bold text-slate-700 mt-8 mb-4">5.4 予想屋アルゴリズム (Tipster Logic)</h3>
